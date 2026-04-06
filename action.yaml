@@ -1,0 +1,56 @@
+# https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-composite-action
+name: "AI Issue Triage"
+description: "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling."
+author: "qte77"
+branding:
+  icon: "tag"
+  color: "purple"
+inputs:
+  GH_TOKEN:
+    description: "GitHub token for gh CLI."
+    required: true
+  AI_TOKEN:
+    description: "GitHub Models API token."
+    default: ${{ github.token }}
+  MODEL:
+    description: "LLM model for GitHub Models API."
+    default: "openai/gpt-4.1"
+  ANTHROPIC_API_KEY:
+    description: "Anthropic API key (alternative LLM backend)."
+    default: ""
+  MAX_DUPLICATES:
+    description: "Max duplicate candidates to check."
+    default: "10"
+  SIMILARITY_THRESHOLD:
+    description: "Fuzzy match threshold 0-1."
+    default: "0.6"
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+        token: ${{ inputs.GH_TOKEN }}
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v6
+      env:
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      with:
+        enable-cache: true
+
+    - name: Run issue triage
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.GH_TOKEN }}
+        AI_TOKEN: ${{ inputs.AI_TOKEN }}
+        MODEL: ${{ inputs.MODEL }}
+        ANTHROPIC_API_KEY: ${{ inputs.ANTHROPIC_API_KEY }}
+        MAX_DUPLICATES: ${{ inputs.MAX_DUPLICATES }}
+        SIMILARITY_THRESHOLD: ${{ inputs.SIMILARITY_THRESHOLD }}
+        PYTHONPATH: ${{ github.action_path }}/src
+        UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/.venv
+      run: |
+        uv sync --frozen --no-dev --project "${{ github.action_path }}"
+        uv run --project "${{ github.action_path }}" python "${{ github.action_path }}/src/app.py"

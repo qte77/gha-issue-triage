@@ -1,0 +1,27 @@
+# Smoke test: runs the action end-to-end via workflow_dispatch.
+# No untrusted github.event.* inputs are referenced — safe from
+# command injection.
+name: Test Action
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  models: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run gha-issue-triage
+        uses: ./
+        with:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify action completed
+        run: echo "Action completed successfully"

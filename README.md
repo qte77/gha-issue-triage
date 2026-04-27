@@ -39,7 +39,7 @@ jobs:
       - uses: qte77/gha-issue-triage@v0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
+```text
 
 ## What it does
 

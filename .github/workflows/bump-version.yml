@@ -1,0 +1,46 @@
+---
+name: Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "[major|minor|patch]"
+        required: true
+        type: choice
+        options: [patch, minor, major]
+      open_pr:
+        description: "Open PR after bumping (canary toggle)"
+        required: false
+        type: choice
+        default: "true"
+        options: ["true", "false"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    uses: qte77/.github/.github/workflows/bump-version.yml@88890c306962cd03c0026f9516652975029c7cff
+    with:
+      bump_type: ${{ inputs.bump_type }}
+      open_pr: ${{ inputs.open_pr }}
+    secrets: inherit
+
+  show-outputs:
+    needs: bump
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print bump outputs
+        env:
+          PREV: ${{ needs.bump.outputs.previous_version }}
+          CURR: ${{ needs.bump.outputs.current_version }}
+          BRANCH: ${{ needs.bump.outputs.branch }}
+          PR_URL: ${{ needs.bump.outputs.pr_url }}
+        run: |
+          echo "previous_version=$PREV"
+          echo "current_version=$CURR"
+          echo "branch=$BRANCH"
+          echo "pr_url=$PR_URL"

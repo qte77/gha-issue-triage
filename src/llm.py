@@ -48,7 +48,7 @@ def _call_anthropic(system_prompt: str, user_prompt: str) -> str:
     url = "https://api.anthropic.com/v1/messages"
     payload = json.dumps(
         {
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 1000,
             "system": system_prompt,
             "messages": [{"role": "user", "content": user_prompt}],

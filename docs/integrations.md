@@ -8,7 +8,7 @@ Three non-breaking paths for users of `gha-issue-triage`. GitHub-Models default 
 
 ## Current Wiring (Reference)
 
-From [`src/llm.py`](../src/llm.py): two backends. `ANTHROPIC_API_KEY` flips to Anthropic with model **hardcoded** at `claude-sonnet-4-20250514` (`src/llm.py:51`) — `MODEL` input only affects GitHub Models.
+From [`src/llm.py`](../src/llm.py): two backends. `ANTHROPIC_API_KEY` flips to Anthropic with model **hardcoded** at `claude-sonnet-4-6` (`src/llm.py:51`) — `MODEL` input only affects GitHub Models.
 
 ## Path 0 — Different model on GitHub Models
 
@@ -123,9 +123,9 @@ with:
 
 ## Suggested Follow-Ups
 
-1. Bump hardcoded Anthropic model `claude-sonnet-4-20250514` → `claude-sonnet-4-6` in `src/llm.py:51` (or make it `MODEL`-driven when `ANTHROPIC_API_KEY` is set)
-2. Implement Path B (`OPENAI_API_BASE` + OpenAI-compat backend)
-3. Document Path 0 model alternatives + Path A in README
+1. Implement Path B (`OPENAI_API_BASE` + OpenAI-compat backend)
+2. Document Path 0 model alternatives + Path A in README
+3. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
 
 [gh-models-cat]: https://github.com/marketplace/models
 [gh-models-docs]: https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models

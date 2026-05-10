@@ -71,11 +71,14 @@ def _request_with_retry(
     parser: callable,
 ) -> str:
     """Send HTTP request with exponential backoff retry."""
+    if not url.startswith("https://"):
+        msg = f"Refusing to open non-https URL: {url}"
+        raise ValueError(msg)
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
             req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310  # nosec B310
                 body = json.loads(resp.read().decode())
                 return parser(body)
         except Exception as exc:

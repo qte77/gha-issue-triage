@@ -50,7 +50,7 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
     complexity = feasibility.get("complexity", "")
     feas_reason = feasibility.get("reasoning", "")
     effort = feasibility.get("estimated_effort", "")
-    feas_line = f"- **Feasibility:** `{complexity}`"
+    feas_line = f"- **Complexity:** `{complexity}`"
     if feas_reason:
         feas_line += f" — {feas_reason}"
     if effort:

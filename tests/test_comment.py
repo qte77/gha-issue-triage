@@ -116,7 +116,7 @@ def test_post_summary_omits_optional_fields_cleanly(mock_run):
     assert result is True
     body = mock_run.call_args_list[1].args[0][-1]
     assert "- **Relevance:** 5/10 — `bug`\n" in body
-    assert "- **Feasibility:** `low`\n" in body
+    assert "- **Complexity:** `low`\n" in body
     assert "(~)" not in body
     assert " — \n" not in body
 

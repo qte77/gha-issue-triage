@@ -3,6 +3,7 @@
 import json
 import time
 import urllib.request
+from collections.abc import Callable
 from os import getenv
 
 AI_TOKEN = getenv("AI_TOKEN", "")
@@ -68,7 +69,7 @@ def _request_with_retry(
     url: str,
     payload: bytes,
     headers: dict[str, str],
-    parser: callable,
+    parser: Callable[[dict], str],
 ) -> str:
     """Send HTTP request with exponential backoff retry."""
     if not url.startswith("https://"):

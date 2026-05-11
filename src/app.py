@@ -45,7 +45,7 @@ def main() -> None:
     labels: list[str] = []
 
     # Step 1: Duplicate detection
-    duplicates = find_duplicates(title, body)
+    duplicates = find_duplicates(title, body, issue_number=issue_number)
     if duplicates:
         top = duplicates[0]
         print(f"Potential duplicate: #{top['number']} (score: {top['score']:.2f})")

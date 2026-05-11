@@ -103,3 +103,14 @@ def test_find_duplicates_respects_max(mock_fetch):
 
     # Assert
     assert len(result) <= 2
+
+
+@patch("src.duplicates._fetch_existing_issues", return_value=SAMPLE_ISSUES)
+def test_find_duplicates_excludes_self(mock_fetch):
+    """Passing issue_number excludes that issue from the candidate pool."""
+    # Act
+    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.6", "MAX_DUPLICATES": "10"}):
+        result = find_duplicates("Fix login bug", "Login fails on Safari", issue_number=1)
+
+    # Assert
+    assert all(item["number"] != 1 for item in result)

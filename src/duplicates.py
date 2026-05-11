@@ -6,10 +6,12 @@ from difflib import SequenceMatcher
 from os import getenv
 
 
-def find_duplicates(title: str, body: str) -> list[dict]:
+def find_duplicates(title: str, body: str, issue_number: int | None = None) -> list[dict]:
     """Find existing issues that are potential duplicates.
 
     Returns list of dicts with keys: number, title, score, sorted by score descending.
+    When issue_number is provided, the issue with that number is excluded from the
+    candidate pool to avoid self-matching during triage.
     """
     max_duplicates = int(getenv("MAX_DUPLICATES", "10"))
     threshold = float(getenv("SIMILARITY_THRESHOLD", "0.6"))
@@ -18,6 +20,8 @@ def find_duplicates(title: str, body: str) -> list[dict]:
     scored = []
 
     for issue in existing:
+        if issue_number is not None and issue["number"] == issue_number:
+            continue
         title_score = SequenceMatcher(None, title.lower(), issue["title"].lower()).ratio()
         body_score = 0.0
         if body and issue.get("body"):

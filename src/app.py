@@ -27,7 +27,7 @@ def main() -> None:
         event = json.load(f)
 
     action = event.get("action", "")
-    if action not in ("opened", "edited"):
+    if action not in ("opened", "edited", "labeled"):
         print(f"Skipping issue action: {action}")
         return
 

@@ -84,6 +84,30 @@ def test_main_skips_closed_action(mock_dup, mock_rel, mock_feas, mock_labels, tm
 @patch("src.app.apply_labels")
 @patch(
     "src.app.analyze_feasibility",
+    return_value={"complexity": "low", "reasoning": "", "estimated_effort": "hours"},
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_dispatches_labeled_issue(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
+    """Labeled action triggers the pipeline (used by label-gated self-triage)."""
+    # Arrange
+    env = _write_event(tmp_path, "issues", "labeled")
+
+    # Act
+    with patch.dict("os.environ", env, clear=False):
+        main()
+
+    # Assert
+    mock_dup.assert_called_once()
+    mock_labels.assert_called_once()
+
+
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
     return_value={"complexity": "high", "reasoning": "", "estimated_effort": "weeks"},
 )
 @patch(

@@ -45,9 +45,7 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
     complexity = feasibility.get("complexity", "")
     feas_reason = feasibility.get("reasoning", "")
     effort = feasibility.get("estimated_effort", "")
-    lines.append(
-        f"- **Feasibility:** `{complexity}` — {feas_reason} (~{effort})".rstrip(" (~)")
-    )
+    lines.append(f"- **Feasibility:** `{complexity}` — {feas_reason} (~{effort})".rstrip(" (~)"))
     lines.append("")
     lines.append("_Auto-generated. Re-runs when the issue is opened, edited, or labelled._")
     return "\n".join(lines)

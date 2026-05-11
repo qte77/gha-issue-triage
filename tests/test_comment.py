@@ -77,8 +77,10 @@ def test_post_summary_updates_existing_marker_comment(mock_run):
     assert cmd[:4] == ["gh", "api", "-X", "PATCH"]
     assert "/repos/qte77/gha-issue-triage/issues/comments/999" in cmd
     # No second issue-comment create call
-    assert all("gh" not in c.args[0] or c.args[0][:3] != ["gh", "issue", "comment"]
-               for c in mock_run.call_args_list)
+    assert all(
+        "gh" not in c.args[0] or c.args[0][:3] != ["gh", "issue", "comment"]
+        for c in mock_run.call_args_list
+    )
 
 
 @patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)

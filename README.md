@@ -10,6 +10,13 @@
 AI-powered issue triage GitHub Action. Detects duplicates, scores relevance,
 analyzes feasibility, and auto-labels issues.
 
+## What it does
+
+1. **Duplicate Detection** — Fuzzy matches new issues against existing ones using `difflib.SequenceMatcher`
+2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
+3. **Feasibility Analysis** — Complexity estimation with codebase file context
+4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
+
 ## Inputs
 
 | Name | Required | Default | Description |
@@ -72,13 +79,6 @@ Use the [Claude GitHub App](https://github.com/apps/claude) (or any custom App w
 ```
 
 See [`docs/integrations.md`](docs/integrations.md) for cross-repo scope, token refresh, and a full breakdown of integration paths (including a cheaper self-hosted backend).
-
-## What it does
-
-1. **Duplicate Detection** — Fuzzy matches new issues against existing ones using `difflib.SequenceMatcher`
-2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
-3. **Feasibility Analysis** — Complexity estimation with codebase file context
-4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
 
 ## License
 

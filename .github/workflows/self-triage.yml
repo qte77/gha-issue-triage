@@ -1,16 +1,15 @@
-# Label-gated self-triage: dogfoods the action on issues in this repo.
-# Triggers only when an issue carries the `triage/run` label — avoids
-# auto-triaging every new issue. Side effects: label create/add only;
-# no comments are posted.
+# Self-triage: dogfoods the action by triaging every new/edited issue in
+# this repo. Side effects: labels may be added; one sticky summary comment
+# is posted (or edited on re-runs).
 #
-# Only the `github.event.issue.labels.*.name` value is referenced, and
-# only inside an `if:` expression — no untrusted github.event.* fields
-# are interpolated into shell commands.
+# Label-application by the action uses secrets.GITHUB_TOKEN, so the
+# resulting `issues: labeled` events do NOT trigger this workflow again
+# (GitHub blocks re-triggering from default-token actions). No loop risk.
 name: Self-triage
 
 on:
   issues:
-    types: [opened, edited, labeled]
+    types: [opened, edited]
 
 permissions:
   issues: write
@@ -19,7 +18,6 @@ permissions:
 
 jobs:
   triage:
-    if: contains(github.event.issue.labels.*.name, 'triage/run')
     runs-on: ubuntu-latest
     steps:
       - uses: qte77/gha-issue-triage@main

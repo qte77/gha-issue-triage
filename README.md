@@ -16,6 +16,7 @@ analyzes feasibility, and auto-labels issues.
 2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
 3. **Feasibility Analysis** — Complexity estimation with codebase file context
 4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
+5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
 
 ## Inputs
 

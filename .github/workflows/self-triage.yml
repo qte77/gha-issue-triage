@@ -1,0 +1,28 @@
+# Label-gated self-triage: dogfoods the action on issues in this repo.
+# Triggers only when an issue carries the `triage/run` label — avoids
+# auto-triaging every new issue. Side effects: label create/add only;
+# no comments are posted.
+#
+# Only the `github.event.issue.labels.*.name` value is referenced, and
+# only inside an `if:` expression — no untrusted github.event.* fields
+# are interpolated into shell commands.
+name: Self-triage
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  issues: write
+  models: read
+  contents: read
+
+jobs:
+  triage:
+    if: contains(github.event.issue.labels.*.name, 'triage/run')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: qte77/gha-issue-triage@main
+        with:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_TOKEN: ${{ secrets.GH_MODELS }}

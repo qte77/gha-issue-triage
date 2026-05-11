@@ -48,6 +48,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
+## Try it in this repo
+
+This repo dogfoods the action via [`.github/workflows/self-triage.yml`](.github/workflows/self-triage.yml). Add the `triage/run` label to any issue and the action triages it on the next `issues` event. Side effects: label create/add only — no comments.
+
 ## Choosing a model
 
 `MODEL` defaults to `openai/gpt-4.1` (GitHub Models). Issue triage is a small/fast model workload — swap to a cheaper or faster model with a one-line caller change. No code change required.

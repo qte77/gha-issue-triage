@@ -56,6 +56,8 @@ def test_post_summary_creates_new_when_no_marker(mock_run):
     assert "#5" in body
     assert RELEVANCE["reasoning"] in body
     assert FEASIBILITY["reasoning"] in body
+    # Regression: the feasibility line keeps its closing paren.
+    assert f"(~{FEASIBILITY['estimated_effort']})" in body
 
 
 @patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
@@ -96,6 +98,27 @@ def test_post_summary_returns_false_on_create_failure(mock_run, capsys):
     # Assert
     assert result is False
     assert "::warning::Failed to create summary comment" in capsys.readouterr().out
+
+
+@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("src.comment.subprocess.run")
+def test_post_summary_omits_optional_fields_cleanly(mock_run):
+    """Empty reasoning/effort produce a clean body — no trailing ' — ' or '(~)'."""
+    # Arrange
+    minimal_rel = {"score": 5, "category": "bug", "irrelevant": False, "reasoning": ""}
+    minimal_feas = {"complexity": "low", "reasoning": "", "estimated_effort": ""}
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    # Act
+    result = post_summary(7, [], minimal_rel, minimal_feas)
+
+    # Assert
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "- **Relevance:** 5/10 — `bug`\n" in body
+    assert "- **Feasibility:** `low`\n" in body
+    assert "(~)" not in body
+    assert " — \n" not in body
 
 
 @patch.dict("os.environ", {}, clear=True)

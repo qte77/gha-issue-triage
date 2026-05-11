@@ -38,14 +38,25 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
     if duplicates:
         top = duplicates[0]
         lines.append(f"- **Duplicate of:** #{top['number']} (similarity {top['score']:.2f})")
+
     score = relevance.get("score", "?")
     category = relevance.get("category", "")
     rel_reason = relevance.get("reasoning", "")
-    lines.append(f"- **Relevance:** {score}/10 — `{category}` — {rel_reason}".rstrip(" —"))
+    rel_line = f"- **Relevance:** {score}/10 — `{category}`"
+    if rel_reason:
+        rel_line += f" — {rel_reason}"
+    lines.append(rel_line)
+
     complexity = feasibility.get("complexity", "")
     feas_reason = feasibility.get("reasoning", "")
     effort = feasibility.get("estimated_effort", "")
-    lines.append(f"- **Feasibility:** `{complexity}` — {feas_reason} (~{effort})".rstrip(" (~)"))
+    feas_line = f"- **Feasibility:** `{complexity}`"
+    if feas_reason:
+        feas_line += f" — {feas_reason}"
+    if effort:
+        feas_line += f" (~{effort})"
+    lines.append(feas_line)
+
     lines.append("")
     lines.append("_Auto-generated. Re-runs when the issue is opened, edited, or labelled._")
     return "\n".join(lines)

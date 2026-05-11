@@ -1,14 +1,32 @@
-# Smoke test: runs the action end-to-end via workflow_dispatch.
-# No untrusted github.event.* inputs are referenced — safe from
-# command injection.
+# End-to-end smoke test: synthesizes an `issues` event payload from an existing
+# issue in this repo, then invokes the action against it. Exercises the full
+# triage pipeline (duplicate / relevance / feasibility / labels) against the
+# real LLM backend.
+#
+# Side effects on the target issue: labels may be added or created. No comments
+# are posted. Pick a throwaway test issue.
+#
+# Only typed workflow_dispatch inputs and trusted env vars are passed to
+# shell — no github.event.* values used in run: blocks.
 name: Test Action
 
 on:
   workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Existing issue number in this repo to triage end-to-end."
+        required: true
+        type: number
+      model:
+        description: "GitHub Models ID (leave default unless testing an alternate)."
+        required: false
+        default: "openai/gpt-4.1"
+        type: string
 
 permissions:
   issues: write
   models: read
+  contents: read
 
 jobs:
   test:
@@ -17,11 +35,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Run gha-issue-triage
+      - name: Synthesize issues event payload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          set -euo pipefail
+          payload="${RUNNER_TEMP}/event.json"
+          gh issue view "$ISSUE_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json number,title,body \
+            | jq '{action: "opened", issue: .}' > "$payload"
+          {
+            echo "GITHUB_EVENT_NAME=issues"
+            echo "GITHUB_EVENT_PATH=$payload"
+          } >> "$GITHUB_ENV"
+
+      - name: Run gha-issue-triage (GitHub Models backend)
         uses: ./
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AI_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AI_TOKEN: ${{ secrets.GH_MODELS }}
+          MODEL: ${{ inputs.model }}
 
       - name: Verify action completed
         run: echo "Action completed successfully"

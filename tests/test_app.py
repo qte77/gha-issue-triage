@@ -20,6 +20,7 @@ def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", bod
     }
 
 
+@patch("src.app.post_summary")
 @patch("src.app.apply_labels")
 @patch(
     "src.app.analyze_feasibility",
@@ -30,8 +31,10 @@ def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", bod
     return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
 )
 @patch("src.app.find_duplicates", return_value=[])
-def test_main_dispatches_opened_issue(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
-    """Opened issue triggers full pipeline and applies labels."""
+def test_main_dispatches_opened_issue(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, tmp_path
+):
+    """Opened issue triggers full pipeline, applies labels, posts summary."""
     # Arrange
     env = _write_event(tmp_path, "issues", "opened")
 
@@ -44,6 +47,7 @@ def test_main_dispatches_opened_issue(mock_dup, mock_rel, mock_feas, mock_labels
     mock_rel.assert_called_once()
     mock_feas.assert_called_once()
     mock_labels.assert_called_once_with(1, ["good-first-issue", "bug"])
+    mock_post.assert_called_once()
 
 
 @patch("src.app.apply_labels")

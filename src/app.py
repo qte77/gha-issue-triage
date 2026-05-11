@@ -4,6 +4,7 @@ import json
 import sys
 from os import getenv
 
+from comment import post_summary
 from duplicates import find_duplicates
 from feasibility import analyze_feasibility
 from labels import apply_labels
@@ -74,6 +75,9 @@ def main() -> None:
         print(f"Applied labels: {labels}")
     else:
         print("No labels to apply")
+
+    # Step 6: Post sticky analysis summary comment
+    post_summary(issue_number, duplicates, relevance, feasibility)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,8 @@
 [![Ruff](https://github.com/qte77/gha-issue-triage/actions/workflows/ruff.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/ruff.yml)
 
 AI-powered issue triage GitHub Action. Detects duplicates, scores relevance,
-analyzes feasibility, and auto-labels issues.
+analyzes feasibility, auto-labels, and posts a sticky summary comment with the
+analysis (edited in place on re-runs).
 
 ## What it does
 
@@ -52,6 +53,20 @@ jobs:
 ## Try it in this repo
 
 This repo dogfoods the action via [`.github/workflows/self-triage.yml`](.github/workflows/self-triage.yml). Every new or edited issue is triaged automatically — no opt-in needed. Side effects: labels may be added, and one sticky summary comment is posted (edited in place on re-runs).
+
+### Sample summary comment
+
+```md
+### AI triage summary
+
+- **Duplicate of:** #30 (similarity 0.93)
+- **Relevance:** 2/10 — `invalid` — The issue proposes an unrealistic feature unrelated to the repository's scope.
+- **Complexity:** `high` — Lacks actionable details and isn't feasible within this codebase. (~weeks)
+
+_Auto-generated. Re-runs when the issue is opened, edited, or labelled._
+```
+
+The duplicate line is omitted when no duplicate is found.
 
 ## Choosing a model
 

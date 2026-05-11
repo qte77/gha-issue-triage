@@ -1,7 +1,7 @@
 [project]
 name = "gha-issue-triage"
 version = "0.1.1"
-description = "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling"
+description = "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling, and a sticky summary comment per issue"
 authors = [
     {name = "qte77", email = "qte@77.gh"}
 ]

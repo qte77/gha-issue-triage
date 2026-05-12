@@ -8,6 +8,7 @@ import pytest
 from src.llm import (
     _call_anthropic,
     _call_github_models,
+    _call_openai_compat,
     _parse_anthropic,
     _parse_github_models,
     _request_with_retry,
@@ -108,10 +109,11 @@ def test_request_with_retry_raises_after_max(mock_urlopen, mock_sleep):
         _request_with_retry("https://example.com", b"{}", {}, _parse_github_models)
 
 
+@patch("src.llm.OPENAI_API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm._call_github_models", return_value="github response")
 def test_call_llm_uses_github_models_by_default(mock_gh):
-    """call_llm dispatches to GitHub Models when no Anthropic key."""
+    """call_llm dispatches to GitHub Models when no Anthropic key or OpenAI base."""
     # Act
     result = call_llm("sys", "usr")
 
@@ -120,6 +122,7 @@ def test_call_llm_uses_github_models_by_default(mock_gh):
     mock_gh.assert_called_once_with("sys", "usr")
 
 
+@patch("src.llm.OPENAI_API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
 @patch("src.llm._call_anthropic", return_value="anthropic response")
 def test_call_llm_uses_anthropic_when_key_set(mock_ant):
@@ -130,3 +133,59 @@ def test_call_llm_uses_anthropic_when_key_set(mock_ant):
     # Assert
     assert result == "anthropic response"
     mock_ant.assert_called_once_with("sys", "usr")
+
+
+@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
+@patch("src.llm._call_openai_compat", return_value="openai-compat response")
+def test_call_llm_prefers_openai_compat_when_base_set(mock_oc):
+    """OPENAI_API_BASE takes precedence over ANTHROPIC_API_KEY."""
+    # Act
+    result = call_llm("sys", "usr")
+
+    # Assert
+    assert result == "openai-compat response"
+    mock_oc.assert_called_once_with("sys", "usr")
+
+
+@patch("src.llm.urllib.request.urlopen")
+@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+def test_call_openai_compat_https_success(mock_urlopen):
+    """OpenAI-compatible cloud endpoint returns parsed content."""
+    # Arrange
+    response_body = {"choices": [{"message": {"content": "mistral response"}}]}
+    mock_urlopen.return_value = _mock_urlopen_response(response_body)
+
+    # Act
+    with patch.dict("os.environ", {"AI_TOKEN": "mistral-key"}, clear=False):
+        result = _call_openai_compat("system", "user")
+
+    # Assert
+    assert result == "mistral response"
+    # URL is built from base + /chat/completions
+    called_url = mock_urlopen.call_args[0][0].full_url
+    assert called_url == "https://api.mistral.ai/v1/chat/completions"
+
+
+@patch("src.llm.urllib.request.urlopen")
+@patch("src.llm.OPENAI_API_BASE", "http://localhost:11434/v1/")  # trailing slash, http
+def test_call_openai_compat_local_http_allowed(mock_urlopen):
+    """Localhost http is permitted for self-hosted backends (Ollama)."""
+    # Arrange
+    response_body = {"choices": [{"message": {"content": "ollama"}}]}
+    mock_urlopen.return_value = _mock_urlopen_response(response_body)
+
+    # Act
+    result = _call_openai_compat("system", "user")
+
+    # Assert
+    assert result == "ollama"
+    called_url = mock_urlopen.call_args[0][0].full_url
+    assert called_url == "http://localhost:11434/v1/chat/completions"
+
+
+def test_request_with_retry_rejects_non_local_http():
+    """Plain http to a non-local host is refused."""
+    # Arrange / Act / Assert
+    with pytest.raises(ValueError, match="non-https"):
+        _request_with_retry("http://evil.example.com/v1", b"{}", {}, _parse_github_models)

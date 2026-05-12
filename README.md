@@ -27,6 +27,7 @@ analysis (edited in place on re-runs).
 | `AI_TOKEN` | No | `github.token` | GitHub Models API token |
 | `MODEL` | No | `openai/gpt-4.1` | LLM model |
 | `ANTHROPIC_API_KEY` | No | — | Anthropic API key (alternative backend) |
+| `OPENAI_API_BASE` | No | — | Base URL of an OpenAI-compatible endpoint (Mistral/Ollama/vLLM); takes precedence when set |
 | `MAX_DUPLICATES` | No | `10` | Max duplicate candidates |
 | `SIMILARITY_THRESHOLD` | No | `0.6` | Fuzzy match threshold (0-1) |
 
@@ -81,6 +82,52 @@ The duplicate line is omitted when no duplicate is found.
 | Open-weights preference | `meta/llama-4-scout-17b-16e-instruct` |
 
 See [`docs/integrations.md`](docs/integrations.md) for the full catalog, rationale, and per-model notes.
+
+## OpenAI-compatible backend (Mistral / Cerebras / Ollama / ...)
+
+Set `OPENAI_API_BASE` to point at any OpenAI-compatible Chat Completions endpoint. `AI_TOKEN` is sent as a Bearer token; `MODEL` selects the model. Localhost `http://` is permitted for self-hosted backends; all other URLs must be `https://`.
+
+| Provider | `OPENAI_API_BASE` | Example `MODEL` |
+|---|---|---|
+| Mistral (Devstral) | `https://api.mistral.ai/v1` | `devstral-small-2505` |
+| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Together | `https://api.together.xyz/v1` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Ollama (self-hosted) | `http://localhost:11434/v1` | `devstral-small-2` |
+
+<details>
+<summary>Caller workflow examples</summary>
+
+Mistral Devstral (cloud):
+
+```yaml
+with:
+  AI_TOKEN: ${{ secrets.MISTRAL_API_KEY }}
+  MODEL: devstral-small-2505
+  OPENAI_API_BASE: https://api.mistral.ai/v1
+```
+
+Cerebras (fast inference):
+
+```yaml
+with:
+  AI_TOKEN: ${{ secrets.CEREBRAS_API_KEY }}
+  MODEL: llama-3.3-70b
+  OPENAI_API_BASE: https://api.cerebras.ai/v1
+```
+
+Self-hosted Ollama:
+
+```yaml
+with:
+  AI_TOKEN: ollama-no-auth
+  MODEL: devstral-small-2
+  OPENAI_API_BASE: http://localhost:11434/v1
+```
+
+</details>
+
+See [`docs/integrations.md`](docs/integrations.md) (Path B) for cost comparison and caveats.
 
 ## Branded `claude[bot]` author via Claude GitHub App
 

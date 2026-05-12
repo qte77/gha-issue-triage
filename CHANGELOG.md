@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sticky AI summary comment per issue, idempotent across re-runs via a hidden marker (#28, #29)
 - Self-triage workflow: every new/edited issue in this repo is triaged automatically (#24, #32)
+- New `feasibility` (yes/no) field in the analysis output, distinct from `complexity` (low/medium/high). Renders as its own line in the summary comment; `Complexity:` is omitted when `feasibility=no`.
 - README sections for Path 0 (model alternatives) and Path A (Claude GitHub App auth), plus a sample summary comment (#22, #23, #33)
 - `docs/integrations.md`: integration paths overview (Path 0/A/B) with cost matrix (#9)
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.0] - 2026-05-12
+
 ### Added
 
 - `OPENAI_API_BASE` input — third LLM backend for any OpenAI-compatible Chat Completions endpoint (Mistral / Devstral, Ollama, vLLM, self-hosted). Takes precedence over Anthropic and GitHub Models when set. Localhost `http://` allowed for self-hosted; all other URLs must be `https://` (#11)

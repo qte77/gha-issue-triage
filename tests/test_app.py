@@ -24,7 +24,12 @@ def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", bod
 @patch("src.app.apply_labels")
 @patch(
     "src.app.analyze_feasibility",
-    return_value={"complexity": "low", "reasoning": "", "estimated_effort": "hours"},
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
 )
 @patch(
     "src.app.score_relevance",
@@ -88,7 +93,12 @@ def test_main_skips_closed_action(mock_dup, mock_rel, mock_feas, mock_labels, tm
 @patch("src.app.apply_labels")
 @patch(
     "src.app.analyze_feasibility",
-    return_value={"complexity": "low", "reasoning": "", "estimated_effort": "hours"},
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
 )
 @patch(
     "src.app.score_relevance",
@@ -112,7 +122,12 @@ def test_main_dispatches_labeled_issue(mock_dup, mock_rel, mock_feas, mock_label
 @patch("src.app.apply_labels")
 @patch(
     "src.app.analyze_feasibility",
-    return_value={"complexity": "high", "reasoning": "", "estimated_effort": "weeks"},
+    return_value={
+        "feasibility": "yes",
+        "complexity": "high",
+        "reasoning": "",
+        "estimated_effort": "weeks",
+    },
 )
 @patch(
     "src.app.score_relevance",

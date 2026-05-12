@@ -60,8 +60,8 @@ def main() -> None:
 
     # Step 3: Feasibility analysis
     feasibility = analyze_feasibility(title, body)
-    print(f"Complexity: {feasibility['complexity']}")
-    if feasibility["complexity"] == "low":
+    print(f"Feasibility: {feasibility['feasibility']} / Complexity: {feasibility['complexity']}")
+    if feasibility["feasibility"] == "yes" and feasibility["complexity"] == "low":
         labels.append("good-first-issue")
 
     # Step 4: Category labeling

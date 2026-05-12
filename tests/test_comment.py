@@ -12,6 +12,7 @@ RELEVANCE = {
     "reasoning": "Adds caller-side flexibility.",
 }
 FEASIBILITY = {
+    "feasibility": "yes",
     "complexity": "low",
     "reasoning": "One-line config change.",
     "estimated_effort": "hours",
@@ -106,7 +107,12 @@ def test_post_summary_omits_optional_fields_cleanly(mock_run):
     """Empty reasoning/effort produce a clean body — no trailing ' — ' or '(~)'."""
     # Arrange
     minimal_rel = {"score": 5, "category": "bug", "irrelevant": False, "reasoning": ""}
-    minimal_feas = {"complexity": "low", "reasoning": "", "estimated_effort": ""}
+    minimal_feas = {
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "",
+    }
     mock_run.side_effect = [_ok(stdout="[]"), _ok()]
 
     # Act
@@ -116,9 +122,34 @@ def test_post_summary_omits_optional_fields_cleanly(mock_run):
     assert result is True
     body = mock_run.call_args_list[1].args[0][-1]
     assert "- **Relevance:** 5/10 — `bug`\n" in body
+    assert "- **Feasibility:** `yes`\n" in body
     assert "- **Complexity:** `low`\n" in body
     assert "(~)" not in body
     assert " — \n" not in body
+
+
+@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("src.comment.subprocess.run")
+def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
+    """When feasibility=no, render Feasibility with reasoning, omit Complexity line."""
+    # Arrange
+    infeasible = {
+        "feasibility": "no",
+        "complexity": "high",
+        "reasoning": "Violates known physics.",
+        "estimated_effort": "weeks",
+    }
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    # Act
+    result = post_summary(7, [], RELEVANCE, infeasible)
+
+    # Assert
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "- **Feasibility:** `no` — Violates known physics." in body
+    assert "Complexity" not in body
+    assert "(~weeks)" not in body
 
 
 @patch.dict("os.environ", {}, clear=True)

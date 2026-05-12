@@ -15,7 +15,9 @@ analysis (edited in place on re-runs).
 
 1. **Duplicate Detection** — Fuzzy matches new issues against existing ones using `difflib.SequenceMatcher`
 2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
-3. **Feasibility Analysis** — Complexity estimation with codebase file context
+3. **Feasibility Analysis** — Two orthogonal judgements per issue:
+   - `feasibility` (`yes` / `no`) — *can* this be built at all? (`no` means out-of-physics / out-of-scope of software, e.g. "build a faster-than-light drive".)
+   - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good-first-issue` when `low`.
 4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
 5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
 
@@ -61,9 +63,14 @@ This repo dogfoods the action via [`.github/workflows/self-triage.yml`](.github/
 
 - **Duplicate of:** #30 (similarity 0.93)
 - **Relevance:** 2/10 — `invalid` — The issue proposes an unrealistic feature unrelated to the repository's scope.
-- **Complexity:** `high` — Lacks actionable details and isn't feasible within this codebase. (~weeks)
+- **Feasibility:** `no` — Faster-than-light travel violates known physics.
+```
 
-_Auto-generated. Re-runs when the issue is opened, edited, or labelled._
+When `feasibility` is `yes` the comment also shows a `Complexity:` line:
+
+```md
+- **Feasibility:** `yes`
+- **Complexity:** `medium` — Requires extending the event-handler and adding tests. (~days)
 ```
 
 The duplicate line is omitted when no duplicate is found.

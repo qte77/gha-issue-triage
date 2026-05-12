@@ -57,35 +57,30 @@ Effect: comments authored by `claude[bot]`, cross-repo scope, refreshable token.
 
 **Implementation effort: zero** — works today via existing `GH_TOKEN` input.
 
-## Path B — OpenAI-compatible backend (Mistral / Devstral / Ollama)
+## Path B — OpenAI-compatible backend (Mistral / Cerebras / Ollama / ...)
 
-[Devstral](https://mistral.ai/news/devstral) (Apache 2.0, 24B, 68.0% SWE-Bench Verified) and any other OpenAI-compatible provider plug in via a new `OPENAI_API_BASE` input. References: [Devstral Small 2][devstral-card], [Mistral API docs][mistral-api].
+Shipped in [#11](https://github.com/qte77/gha-issue-triage/issues/11) (action ≥0.2.0). Any OpenAI-compatible Chat Completions endpoint plugs in via the `OPENAI_API_BASE` input — Mistral, Cerebras, Groq, Together, Fireworks, vLLM, Ollama. `AI_TOKEN` is sent as a Bearer; `MODEL` selects the model. Localhost `http://` is allowed for self-hosted; all other URLs must be `https://`.
 
-### Required action change
-
-```python
-# src/llm.py
-OPENAI_API_BASE = getenv("OPENAI_API_BASE", "")
-
-def call_llm(system_prompt, user_prompt):
-    if OPENAI_API_BASE:
-        return _call_openai_compat(system_prompt, user_prompt)
-    if ANTHROPIC_API_KEY:
-        return _call_anthropic(system_prompt, user_prompt)
-    return _call_github_models(system_prompt, user_prompt)
-```
-
-`_call_openai_compat` reuses `_parse_github_models` — GitHub Models response shape mirrors OpenAI Chat Completions, so the parser is identical. Add `OPENAI_API_BASE` input to `action.yaml` (default empty).
+References: [Devstral Small 2][devstral-card], [Mistral API docs][mistral-api].
 
 ### Caller workflows
 
-Mistral API:
+Mistral Devstral (cloud):
 
 ```yaml
 with:
   AI_TOKEN: ${{ secrets.MISTRAL_API_KEY }}
   MODEL: devstral-small-2505
   OPENAI_API_BASE: https://api.mistral.ai/v1
+```
+
+Cerebras (fast inference):
+
+```yaml
+with:
+  AI_TOKEN: ${{ secrets.CEREBRAS_API_KEY }}
+  MODEL: llama-3.3-70b
+  OPENAI_API_BASE: https://api.cerebras.ai/v1
 ```
 
 Self-hosted Ollama (RTX 4090 / Mac 32GB):
@@ -107,10 +102,6 @@ with:
 | **Mistral Devstral API** | **~$0.20** |
 | Self-hosted Devstral | ~$5–10 power |
 
-### Implementation effort
-
-`OPENAI_API_BASE` input + `_call_openai_compat` + tests + README update — **~1.5 h**.
-
 ## Recommendation Matrix
 
 | Workload | Path | Why |
@@ -123,8 +114,7 @@ with:
 
 ## Suggested Follow-Ups
 
-1. Implement Path B (`OPENAI_API_BASE` + OpenAI-compat backend) — tracked in [#11](https://github.com/qte77/gha-issue-triage/issues/11)
-2. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
+1. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
 
 [gh-models-cat]: https://github.com/marketplace/models
 [gh-models-docs]: https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models

@@ -1,4 +1,4 @@
-"""Configurable LLM backend: GitHub Models API (default) or Anthropic API."""
+"""Configurable LLM backend: OpenAI-compatible, Anthropic, or GitHub Models (default)."""
 
 import json
 import time
@@ -9,13 +9,20 @@ from os import getenv
 AI_TOKEN = getenv("AI_TOKEN", "")
 MODEL = getenv("MODEL", "openai/gpt-4.1")
 ANTHROPIC_API_KEY = getenv("ANTHROPIC_API_KEY", "")
+OPENAI_API_BASE = getenv("OPENAI_API_BASE", "")
 
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2
 
 
 def call_llm(system_prompt: str, user_prompt: str) -> str:
-    """Call LLM with retry and backoff. Uses Anthropic if key is set, else GitHub Models."""
+    """Call LLM with retry and backoff.
+
+    Dispatch order: OpenAI-compatible (if OPENAI_API_BASE set) → Anthropic
+    (if ANTHROPIC_API_KEY set) → GitHub Models (default).
+    """
+    if OPENAI_API_BASE:
+        return _call_openai_compat(system_prompt, user_prompt)
     if ANTHROPIC_API_KEY:
         return _call_anthropic(system_prompt, user_prompt)
     return _call_github_models(system_prompt, user_prompt)
@@ -24,6 +31,29 @@ def call_llm(system_prompt: str, user_prompt: str) -> str:
 def _call_github_models(system_prompt: str, user_prompt: str) -> str:
     """Call GitHub Models API via urllib."""
     url = "https://models.github.ai/inference/chat/completions"
+    payload = json.dumps(
+        {
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            "max_tokens": 1000,
+            "temperature": 0.3,
+        }
+    ).encode()
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {AI_TOKEN}",
+    }
+
+    return _request_with_retry(url, payload, headers, _parse_github_models)
+
+
+def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
+    """Call an OpenAI-compatible Chat Completions endpoint (Mistral, Ollama, vLLM, ...)."""
+    url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
     payload = json.dumps(
         {
             "model": MODEL,
@@ -72,7 +102,7 @@ def _request_with_retry(
     parser: Callable[[dict], str],
 ) -> str:
     """Send HTTP request with exponential backoff retry."""
-    if not url.startswith("https://"):
+    if not (url.startswith("https://") or _is_local_http(url)):
         msg = f"Refusing to open non-https URL: {url}"
         raise ValueError(msg)
     last_error = None
@@ -91,6 +121,11 @@ def _request_with_retry(
 
     msg = f"LLM request failed after {MAX_RETRIES} attempts: {last_error}"
     raise RuntimeError(msg)
+
+
+def _is_local_http(url: str) -> bool:
+    """Allow plain http only for localhost (self-hosted backends like Ollama)."""
+    return url.startswith(("http://localhost", "http://127.0.0.1"))
 
 
 def _parse_github_models(body: dict) -> str:

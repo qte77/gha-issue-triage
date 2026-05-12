@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `OPENAI_API_BASE` input — third LLM backend for any OpenAI-compatible Chat Completions endpoint (Mistral / Devstral, Ollama, vLLM, self-hosted). Takes precedence over Anthropic and GitHub Models when set. Localhost `http://` allowed for self-hosted; all other URLs must be `https://` (#11)
 - Sticky AI summary comment per issue, idempotent across re-runs via a hidden marker (#28, #29)
 - Self-triage workflow: every new/edited issue in this repo is triaged automatically (#24, #32)
 - New `feasibility` (yes/no) field in the analysis output, distinct from `complexity` (low/medium/high). Renders as its own line in the summary comment; `Complexity:` is omitted when `feasibility=no`.

@@ -23,4 +23,6 @@ jobs:
       - uses: qte77/gha-issue-triage@main
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          AI_TOKEN: ${{ secrets.GH_MODELS }}
+          # AI_TOKEN omitted → action defaults to github.token;
+          # combined with `permissions: models: read` above, that authenticates
+          # GitHub Models calls without a separate PAT. See docs/integrations.md.

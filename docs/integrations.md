@@ -39,6 +39,29 @@ GitHub Models has no public per-model pricing — paid tier is "opt into paid us
 
 **Implementation effort: zero** — works today.
 
+## Auth for `AI_TOKEN` (GitHub Models specifically)
+
+The action's `AI_TOKEN` input defaults to `${{ github.token }}`. Combined with `permissions: models: read` on the caller workflow, that is sufficient for the GitHub Models inference endpoint — **no separate PAT or org-level setup is required**. This repo's own [`self-triage.yml`](../.github/workflows/self-triage.yml) demonstrates the pattern.
+
+Three valid token shapes for GitHub Models, in increasing setup cost:
+
+| Token shape | Setup | Models access requirement |
+| --- | --- | --- |
+| `${{ github.token }}` (workflow default) | Add `permissions: models: read` to the caller workflow | Documented as valid syntax under `permissions:` in the [GitHub Actions workflow syntax docs](https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions) |
+| Classic PAT | *Settings → Developer settings → Personal access tokens (classic)* — **no scopes needed** | The REST [Models inference docs](https://docs.github.com/en/rest/models/inference?apiVersion=2022-11-28) note the `models:read` scope is required *only* "when using a fine-grained personal access token or when authenticating using a GitHub App" — classic PATs authenticate as a user without an explicit Models scope |
+| Fine-grained PAT | *Settings → Personal access tokens (fine-grained)* — Account permissions → **Models: Read-only** (URL param `&user_models=read`) | Most-locked-down option; required scope is explicit |
+
+### Rate-limit attribution
+
+Per the [Models docs](https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models), rate limits are tied to the **Copilot subscription tier** of the user making the call, not the org's plan. Free / Pro / Business share a tier; Copilot Enterprise gets the most headroom.
+
+What "the user making the call" means in each case is **not first-party documented** but coherent with empirical behaviour:
+
+- `${{ github.token }}` → calls run as `github-actions[bot]`, which has no Copilot subscription → lowest free quota bucket. Sufficient for low-volume repos; can 429 on bursts.
+- Classic / fine-grained PAT → inherits the **creating user's** Copilot tier. Useful if the maintainer has a higher tier than `github-actions[bot]`.
+
+For low-volume repos, prefer the workflow default — zero secret management. If you hit `HTTP 429 Too Many Requests` from the inference endpoint, escalate to a PAT or switch to Path B (an OpenAI-compatible backend with its own quota).
+
 ## Path A — Claude GitHub App auth
 
 ```yaml

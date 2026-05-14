@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Category label (`feature` / `bug` / `enhancement` / `needs-discussion`) is no longer applied when `relevance.irrelevant=true`; only `invalid` (plus feasibility/duplicate labels) is applied. Resolves the contradictory `invalid` + `feature` combo that appeared on out-of-scope issues (#41)
+- `apply_labels` now reconciles the managed label set on every triage run: fossil labels within `VALID_LABELS` are removed, additions and removals happen in a single `gh issue edit` call, and a no-op fast-path skips the call entirely when the set is already in sync. Human-applied labels outside `VALID_LABELS` are preserved (#42)
 
 ---
 

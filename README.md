@@ -24,7 +24,7 @@ analysis (edited in place on re-runs).
 ## Inputs
 
 | Name | Required | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `GH_TOKEN` | Yes | — | GitHub token for gh CLI |
 | `AI_TOKEN` | No | `github.token` | GitHub Models API token |
 | `MODEL` | No | `openai/gpt-4.1` | LLM model |
@@ -81,7 +81,7 @@ The duplicate line is omitted when no duplicate is found.
 `MODEL` defaults to `openai/gpt-4.1` (GitHub Models). Issue triage is a small/fast model workload — swap to a cheaper or faster model with a one-line caller change. No code change required.
 
 | Use case | Suggested `MODEL` |
-|---|---|
+| --- | --- |
 | Default — strongest general model on free tier | `openai/gpt-4.1` |
 | Speed/cost balance | `openai/gpt-4o-mini` |
 | Highest throughput | `microsoft/phi-4-mini-instruct` |
@@ -95,7 +95,7 @@ See [`docs/integrations.md`](docs/integrations.md) for the full catalog, rationa
 Set `OPENAI_API_BASE` to point at any OpenAI-compatible Chat Completions endpoint. `AI_TOKEN` is sent as a Bearer token; `MODEL` selects the model. Localhost `http://` is permitted for self-hosted backends; all other URLs must be `https://`.
 
 | Provider | `OPENAI_API_BASE` | Example `MODEL` |
-|---|---|---|
+| --- | --- | --- |
 | Mistral (Devstral) | `https://api.mistral.ai/v1` | `devstral-small-2505` |
 | Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |

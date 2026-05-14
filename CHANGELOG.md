@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Category label (`feature` / `bug` / `enhancement` / `needs-discussion`) is no longer applied when `relevance.irrelevant=true`; only `invalid` (plus feasibility/duplicate labels) is applied. Resolves the contradictory `invalid` + `feature` combo that appeared on out-of-scope issues (#41)
+
 ---
 
 ## [0.2.0] - 2026-05-12

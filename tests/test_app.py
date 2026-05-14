@@ -151,3 +151,71 @@ def test_main_duplicate_and_irrelevant_labels(mock_dup, mock_rel, mock_feas, moc
     labels = mock_labels.call_args[0][1]
     assert "duplicate" in labels
     assert "invalid" in labels
+
+
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "no",
+        "complexity": "high",
+        "reasoning": "",
+        "estimated_effort": "",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 2, "category": "feature", "irrelevant": True, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_irrelevant_suppresses_category_label(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, tmp_path
+):
+    """When relevance.irrelevant=true, category label (e.g. 'feature') is suppressed."""
+    # Arrange
+    env = _write_event(tmp_path, "issues", "opened")
+
+    # Act
+    with patch.dict("os.environ", env, clear=False):
+        main()
+
+    # Assert
+    mock_labels.assert_called_once()
+    labels = mock_labels.call_args[0][1]
+    assert "invalid" in labels
+    assert "feature" not in labels
+
+
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "medium",
+        "reasoning": "",
+        "estimated_effort": "days",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "feature", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_relevant_applies_category_label(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, tmp_path
+):
+    """When relevance.irrelevant=false, the category label is applied as before."""
+    # Arrange
+    env = _write_event(tmp_path, "issues", "opened")
+
+    # Act
+    with patch.dict("os.environ", env, clear=False):
+        main()
+
+    # Assert
+    mock_labels.assert_called_once()
+    labels = mock_labels.call_args[0][1]
+    assert "feature" in labels
+    assert "invalid" not in labels

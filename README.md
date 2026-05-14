@@ -1,6 +1,6 @@
 # gha-issue-triage
 
-![Version](https://img.shields.io/badge/version-0.2.0-8A2BE2)
+![Version](https://img.shields.io/badge/version-0.2.1-8A2BE2)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![Tests](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml)
 ![CodeFactor](https://www.codefactor.io/repository/github/qte77/gha-issue-triage/badge)

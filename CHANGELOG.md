@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.2.1] - 2026-05-14
+
 ### Added
 
 - Theme-aware screenshot of triaged issues in the README, collapsed under a `<details>` block (#46)

@@ -17,7 +17,7 @@ The action's `MODEL` default `openai/gpt-4.1` works but is one of dozens. Issue 
 Notable IDs available on GitHub Models ([catalog reference][gh-models-cat]):
 
 | Model ID | Provider | Why for triage |
-|---|---|---|
+| --- | --- | --- |
 | `openai/gpt-4.1` | OpenAI | Current default — strongest general model on free tier |
 | `openai/gpt-4o-mini` | OpenAI | ~5× faster than gpt-4.1 at similar triage quality |
 | `microsoft/phi-4-mini-instruct` | Microsoft | Tiny, fastest, cheapest — good for high-volume orgs |
@@ -95,7 +95,7 @@ with:
 ### Cost (10 issues/day, ~5K in / 500 out per issue)
 
 | Backend | Monthly |
-|---|---|
+| --- | --- |
 | GitHub Models (Path 0, any model) | $0 (rate-limited) |
 | Anthropic Sonnet | ~$9 |
 | Anthropic Opus | ~$34 |
@@ -105,7 +105,7 @@ with:
 ## Recommendation Matrix
 
 | Workload | Path | Why |
-|---|---|---|
+| --- | --- | --- |
 | Low volume, public repo | **Path 0** (any free GH Models ID) | Free, rate limits sufficient |
 | Code-heavy repo, want better feasibility scoring | **Path 0 + DeepSeek** | `deepseek-v3-0324` for code understanding |
 | Want branded `claude[bot]` author + cross-repo auth | **Path A** | Caller-side only |

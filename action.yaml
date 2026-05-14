@@ -10,7 +10,7 @@ inputs:
     description: "GitHub token for gh CLI."
     required: true
   AI_TOKEN:
-    description: "GitHub Models API token."
+    description: "Token for the LLM backend. For GitHub Models (default), the caller workflow's github.token works when permissions: models: read is set. For Anthropic / OpenAI-compatible backends, pass the provider API key."
     default: ${{ github.token }}
   MODEL:
     description: "LLM model for GitHub Models API."

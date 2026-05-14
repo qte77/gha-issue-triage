@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Theme-aware screenshot of triaged issues in the README, collapsed under a `<details>` block (#46)
+- `docs/integrations.md`: "Auth for `AI_TOKEN`" section documenting the three valid token shapes for GitHub Models (workflow `${{ github.token }}` with `permissions: models: read`, scopeless classic PAT, fine-grained PAT with `user_models:read`) plus rate-limit attribution caveats (#47)
+
+### Changed
+
+- Self-triage workflow uses the default `${{ github.token }}` for GitHub Models calls instead of a custom `GH_MODELS` PAT — `permissions: models: read` is sufficient. Callers no longer need to mint a PAT for the default Path 0 setup (#47)
+- `.markdownlint.json` added at the repo root: disables MD013 (line-length), allows duplicate `### Added` / `### Fixed` headings under different version H2s, permits inline `<details>` / `<summary>` / `<picture>` / `<source>` / `<img>` for theme-aware images. Table separator rows in README and `docs/integrations.md` reformatted from `|---|---|` to `| --- | --- |` (#43, #46)
+
 ### Fixed
 
 - Category label (`feature` / `bug` / `enhancement` / `needs-discussion`) is no longer applied when `relevance.irrelevant=true`; only `invalid` (plus feasibility/duplicate labels) is applied. Resolves the contradictory `invalid` + `feature` combo that appeared on out-of-scope issues (#41)

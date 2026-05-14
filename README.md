@@ -76,6 +76,16 @@ When `feasibility` is `yes` the comment also shows a `Complexity:` line:
 
 The duplicate line is omitted when no duplicate is found.
 
+<details>
+<summary>Screenshot — triaged issues in this repo</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/images/screenshot_issues_dark.png">
+  <img alt="Triaged issues showing AI-applied labels and sticky summary comments" src="assets/images/screenshot_issues_light.png">
+</picture>
+
+</details>
+
 ## Choosing a model
 
 `MODEL` defaults to `openai/gpt-4.1` (GitHub Models). Issue triage is a small/fast model workload — swap to a cheaper or faster model with a one-line caller change. No code change required.

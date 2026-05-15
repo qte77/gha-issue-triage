@@ -1,6 +1,6 @@
 [project]
 name = "gha-issue-triage"
-version = "0.2.1"
+version = "0.2.2"
 description = "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling, and a sticky summary comment per issue"
 authors = [
     {name = "qte77", email = "qte@77.gh"}
@@ -23,7 +23,7 @@ line-length = 100
 select = ["E", "F", "I", "W"]
 
 [tool.bumpversion]
-current_version = "0.2.1"
+current_version = "0.2.2"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 commit = false

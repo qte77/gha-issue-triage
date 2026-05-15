@@ -1,6 +1,6 @@
 # https://docs.github.com/en/actions/sharing-automations/creating-actions/creating-a-composite-action
 name: "AI Issue Triage"
-description: "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling, and a sticky summary comment per issue."
+description: "AI-powered issue triage. Detects duplicates, scores relevance, analyzes feasibility, auto-labels, posts sticky summary."
 author: "qte77"
 branding:
   icon: "tag"

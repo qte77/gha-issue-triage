@@ -8,6 +8,7 @@ VALID_LABELS = {
     "feature",
     "enhancement",
     "good-first-issue",
+    "good first issue",
     "needs-discussion",
     "invalid",
 }

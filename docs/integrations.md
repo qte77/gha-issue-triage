@@ -71,7 +71,7 @@ For low-volume repos, prefer the workflow default — zero secret management. If
     app-id: ${{ secrets.CLAUDE_APP_ID }}
     private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
 
-- uses: qte77/gha-issue-triage@v1
+- uses: qte77/gha-issue-triage@v0.2.4
   with:
     GH_TOKEN: ${{ steps.app-token.outputs.token }}
 ```

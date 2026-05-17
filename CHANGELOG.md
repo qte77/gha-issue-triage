@@ -9,11 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.2.4] - 2026-05-17
+
+### Fixed
+
+- README and `docs/integrations.md` usage examples pinned to a real release tag (`@v0.2.4`); previously pointed at `@v0` and `@v1` respectively, neither of which exists — copy-pasted examples failed with `tag not found` (#TBD)
+
+### Documentation
+
+- Backfilled empty `[0.2.2]` and `[0.2.3]` sections in `CHANGELOG.md` with the actual changes that shipped under those tags (#TBD)
+
+---
+
 ## [0.2.3] - 2026-05-17
+
+### Fixed
+
+- SHA-pin `actions/checkout@v6` → `actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd` (v6.0.2) in `action.yaml`. Unblocks consumers in strict-pin-policy organizations that reject tag refs on every nested `uses:`, including inside composite actions (#54)
 
 ---
 
 ## [0.2.2] - 2026-05-15
+
+### Fixed
+
+- `action.yaml` `description` trimmed from 141 → 119 chars to pass GitHub Marketplace publication validation (≤124 chars). No behaviour change (#52)
 
 ---
 

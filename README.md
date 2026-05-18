@@ -146,24 +146,6 @@ with:
 
 See [`docs/integrations.md`](docs/integrations.md) (Path B) for cost comparison and caveats.
 
-## Branded `claude[bot]` author via Claude GitHub App
-
-Use the [Claude GitHub App](https://github.com/apps/claude) (or any custom App with `issues: write`, `contents: read`) so comments and labels are authored by `claude[bot]` instead of `github-actions[bot]`. Caller-side only — no code change.
-
-```yaml
-- id: app-token
-  uses: actions/create-github-app-token@v1
-  with:
-    app-id: ${{ secrets.CLAUDE_APP_ID }}
-    private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
-
-- uses: qte77/gha-issue-triage@v0.2.4
-  with:
-    GH_TOKEN: ${{ steps.app-token.outputs.token }}
-```
-
-See [`docs/integrations.md`](docs/integrations.md) for cross-repo scope, token refresh, and a full breakdown of integration paths (including a cheaper self-hosted backend).
-
 ## License
 
 [Apache-2.0](LICENSE)

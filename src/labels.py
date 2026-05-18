@@ -7,7 +7,7 @@ VALID_LABELS = {
     "bug",
     "feature",
     "enhancement",
-    "good-first-issue",
+    "good first issue",
     "needs-discussion",
     "invalid",
 }
@@ -66,8 +66,18 @@ def _get_current_labels(issue_number: int) -> set[str]:
     return {line for line in result.stdout.splitlines() if line}
 
 
+_HYPENATED_LABEL_MIGRATIONS = {
+    "good first issue": "good-first-issue",
+}
+
+
 def _ensure_labels_exist(labels: list[str]) -> None:
-    """Create labels if they don't already exist."""
+    """Create labels if they don't already exist.
+
+    Also migrates any known hyphenated label variants to their canonical
+    (GitHub-default) name, preventing duplicate labels on repos that were
+    previously managed by an older version of this action.
+    """
     for label in labels:
         subprocess.run(
             ["gh", "label", "create", label, "--force"],
@@ -75,3 +85,12 @@ def _ensure_labels_exist(labels: list[str]) -> None:
             text=True,
             check=False,
         )
+    # Migrate old hyphenated variants to canonical names
+    for canonical, old_spelling in _HYPENATED_LABEL_MIGRATIONS.items():
+        if canonical in labels:
+            subprocess.run(
+                ["gh", "label", "delete", old_spelling, "--yes"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )

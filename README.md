@@ -18,7 +18,7 @@ analysis (edited in place on re-runs).
 3. **Feasibility Analysis** — Two orthogonal judgements per issue:
    - `feasibility` (`yes` / `no`) — *can* this be built at all? (`no` means out-of-physics / out-of-scope of software, e.g. "build a faster-than-light drive".)
    - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good-first-issue` when `low`.
-4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
+4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good first issue`, `needs-discussion`, `invalid` (aligns with GitHub's default label set to avoid duplicate label creation)
 5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
 
 ## Inputs
@@ -56,6 +56,8 @@ jobs:
 ## Try it in this repo
 
 This repo dogfoods the action via [`.github/workflows/self-triage.yml`](.github/workflows/self-triage.yml). Every new or edited issue is triaged automatically — no opt-in needed. Side effects: labels may be added, and one sticky summary comment is posted (edited in place on re-runs).
+
+> **v0.2.4 → v0.2.5 label migration:** If you had `good-first-issue` (hyphenated) from a previous version, v0.2.5 automatically renames it to `good first issue` (matching GitHub's default) on the first run. No manual action needed.
 
 ### Sample summary comment
 

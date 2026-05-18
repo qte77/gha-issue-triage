@@ -18,7 +18,7 @@ def test_valid_labels_set():
     """VALID_LABELS contains expected labels."""
     assert "bug" in VALID_LABELS
     assert "duplicate" in VALID_LABELS
-    assert "good-first-issue" in VALID_LABELS
+    assert "good first issue" in VALID_LABELS
 
 
 @patch("src.labels.subprocess.run")
@@ -185,16 +185,30 @@ def test_get_current_labels_empty_on_failure(mock_run):
 
 
 @patch("src.labels.subprocess.run")
-def test_ensure_labels_exist_creates_labels(mock_run):
-    """Calls gh label create for each label."""
+def test_ensure_labels_exist_migrates_old_hyphenated_label(mock_run):
+    """When creating 'good first issue', also deletes old 'good-first-issue'."""
+    # Arrange
+    mock_run.return_value.returncode = 0
+
+    # Act
+    _ensure_labels_exist(["good first issue"])
+
+    # Assert: creates the spaced version, then deletes the hyphenated one
+    assert mock_run.call_count == 2
+    create_cmd = mock_run.call_args_list[0][0][0]
+    assert create_cmd == ["gh", "label", "create", "good first issue", "--force"]
+    delete_cmd = mock_run.call_args_list[1][0][0]
+    assert delete_cmd == ["gh", "label", "delete", "good-first-issue", "--yes"]
+
+
+@patch("src.labels.subprocess.run")
+def test_ensure_labels_exist_skips_migration_when_not_needed(mock_run):
+    """No deletion call when the canonical label isn't in the requested set."""
     # Arrange
     mock_run.return_value.returncode = 0
 
     # Act
     _ensure_labels_exist(["bug", "feature"])
 
-    # Assert
-    assert mock_run.call_count == 2
-    calls = mock_run.call_args_list
-    assert "bug" in calls[0][0][0]
-    assert "feature" in calls[1][0][0]
+    # Assert: only creates, no migration deletions
+    assert mock_run.call_count == 2  # just the creates

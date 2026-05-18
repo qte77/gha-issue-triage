@@ -18,7 +18,7 @@ def test_valid_labels_set():
     """VALID_LABELS contains expected labels."""
     assert "bug" in VALID_LABELS
     assert "duplicate" in VALID_LABELS
-    assert "good-first-issue" in VALID_LABELS
+    assert "good first issue" in VALID_LABELS
 
 
 @patch("src.labels.subprocess.run")

@@ -21,6 +21,16 @@ analysis (edited in place on re-runs).
 4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
 5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
 
+<details>
+<summary>Screenshot — triaged issues in this repo</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/images/screenshot_issues_dark.png">
+  <img alt="Triaged issues showing AI-applied labels and sticky summary comments" src="assets/images/screenshot_issues_light.png">
+</picture>
+
+</details>
+
 ## Inputs
 
 | Name | Required | Default | Description |
@@ -75,16 +85,6 @@ When `feasibility` is `yes` the comment also shows a `Complexity:` line:
 ```
 
 The duplicate line is omitted when no duplicate is found.
-
-<details>
-<summary>Screenshot — triaged issues in this repo</summary>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/images/screenshot_issues_dark.png">
-  <img alt="Triaged issues showing AI-applied labels and sticky summary comments" src="assets/images/screenshot_issues_light.png">
-</picture>
-
-</details>
 
 ## Choosing a model
 

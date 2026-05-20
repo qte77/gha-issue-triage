@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![Tests](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml)
 ![CodeFactor](https://www.codefactor.io/repository/github/qte77/gha-issue-triage/badge)
-![Dependabot](https://img.shields.io/badge/dependabot-enabled-025e8c)
+[![Dependabot Updates](https://github.com/qte77/gha-issue-triage/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/dependabot/dependabot-updates)
 [![Ruff](https://github.com/qte77/gha-issue-triage/actions/workflows/ruff.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/ruff.yml)
 
 AI-powered issue triage GitHub Action. Detects duplicates, scores relevance,
@@ -20,6 +20,16 @@ analysis (edited in place on re-runs).
    - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good-first-issue` when `low`.
 4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good first issue`, `needs-discussion`, `invalid` (aligns with GitHub's default label set to avoid duplicate label creation)
 5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
+
+<details>
+<summary>Screenshot — triaged issues in this repo</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/images/screenshot_issues_dark.png">
+  <img alt="Triaged issues showing AI-applied labels and sticky summary comments" src="assets/images/screenshot_issues_light.png">
+</picture>
+
+</details>
 
 ## Inputs
 
@@ -77,16 +87,6 @@ When `feasibility` is `yes` the comment also shows a `Complexity:` line:
 ```
 
 The duplicate line is omitted when no duplicate is found.
-
-<details>
-<summary>Screenshot — triaged issues in this repo</summary>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="assets/images/screenshot_issues_dark.png">
-  <img alt="Triaged issues showing AI-applied labels and sticky summary comments" src="assets/images/screenshot_issues_light.png">
-</picture>
-
-</details>
 
 ## Choosing a model
 
@@ -147,24 +147,6 @@ with:
 </details>
 
 See [`docs/integrations.md`](docs/integrations.md) (Path B) for cost comparison and caveats.
-
-## Branded `claude[bot]` author via Claude GitHub App
-
-Use the [Claude GitHub App](https://github.com/apps/claude) (or any custom App with `issues: write`, `contents: read`) so comments and labels are authored by `claude[bot]` instead of `github-actions[bot]`. Caller-side only — no code change.
-
-```yaml
-- id: app-token
-  uses: actions/create-github-app-token@v1
-  with:
-    app-id: ${{ secrets.CLAUDE_APP_ID }}
-    private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
-
-- uses: qte77/gha-issue-triage@v0.2.4
-  with:
-    GH_TOKEN: ${{ steps.app-token.outputs.token }}
-```
-
-See [`docs/integrations.md`](docs/integrations.md) for cross-repo scope, token refresh, and a full breakdown of integration paths (including a cheaper self-hosted backend).
 
 ## License
 

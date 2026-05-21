@@ -1,9 +1,8 @@
 # Integration Paths
 
-Three non-breaking paths for users of `gha-issue-triage`. GitHub-Models default is preserved in all of them.
+Two non-breaking paths for users of `gha-issue-triage`. GitHub-Models default is preserved in both.
 
 - **Path 0** — Stay on GitHub Models, switch to a smaller/faster model via the existing `MODEL` input. **No code change.**
-- **Path A** — Use [`apps/claude`](https://github.com/apps/claude) for GitHub auth instead of `github.token`. **No code change.**
 - **Path B** — Add OpenAI-compatible backend (Mistral / Devstral / Ollama / vLLM). **One small change in `src/llm.py` + new input.**
 
 ## Current Wiring (Reference)
@@ -62,24 +61,6 @@ What "the user making the call" means in each case is **not first-party document
 
 For low-volume repos, prefer the workflow default — zero secret management. If you hit `HTTP 429 Too Many Requests` from the inference endpoint, escalate to a PAT or switch to Path B (an OpenAI-compatible backend with its own quota).
 
-## Path A — Claude GitHub App auth
-
-```yaml
-- id: app-token
-  uses: actions/create-github-app-token@v1
-  with:
-    app-id: ${{ secrets.CLAUDE_APP_ID }}
-    private-key: ${{ secrets.CLAUDE_APP_PRIVATE_KEY }}
-
-- uses: qte77/gha-issue-triage@v0.2.4
-  with:
-    GH_TOKEN: ${{ steps.app-token.outputs.token }}
-```
-
-Effect: comments authored by `claude[bot]`, cross-repo scope, refreshable token. Requires `apps/claude` (or custom App with `issues: write`, `contents: read`) installed on the org.
-
-**Implementation effort: zero** — works today via existing `GH_TOKEN` input.
-
 ## Path B — OpenAI-compatible backend (Mistral / Cerebras / Ollama / ...)
 
 Shipped in [#11](https://github.com/qte77/gha-issue-triage/issues/11) (action ≥0.2.0). Any OpenAI-compatible Chat Completions endpoint plugs in via the `OPENAI_API_BASE` input — Mistral, Cerebras, Groq, Together, Fireworks, vLLM, Ollama. `AI_TOKEN` is sent as a Bearer; `MODEL` selects the model. Localhost `http://` is allowed for self-hosted; all other URLs must be `https://`.
@@ -131,7 +112,6 @@ with:
 | --- | --- | --- |
 | Low volume, public repo | **Path 0** (any free GH Models ID) | Free, rate limits sufficient |
 | Code-heavy repo, want better feasibility scoring | **Path 0 + DeepSeek** | `deepseek-v3-0324` for code understanding |
-| Want branded `claude[bot]` author + cross-repo auth | **Path A** | Caller-side only |
 | High volume, free tier exhausted | **Path B** (Devstral API) | ~45× cheaper than Sonnet |
 | Privacy / compliance | **Path B** (self-hosted) | No API egress |
 

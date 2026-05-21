@@ -43,6 +43,9 @@ runs:
 
     - name: Run issue triage
       shell: bash
+      # All caller inputs flow through env: (referenced as $VAR in run:) rather
+      # than ${{ inputs.* }} interpolated into the shell — prevents command
+      # injection when an input value contains shell metacharacters.
       env:
         GH_TOKEN: ${{ inputs.GH_TOKEN }}
         AI_TOKEN: ${{ inputs.AI_TOKEN }}

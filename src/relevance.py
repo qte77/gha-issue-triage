@@ -15,9 +15,9 @@ def score_relevance(title: str, body: str) -> dict:
     system_prompt = (
         "You are an issue triage assistant. Score the relevance of a GitHub issue "
         "to the repository scope. Respond with valid JSON only, no markdown.\n"
-        "Fields: score (1-10), category (one of: bug, feature, enhancement, "
-        "needs-discussion, invalid), irrelevant (bool, true if score <= 3), "
-        "reasoning (one sentence)."
+        "Fields: score (1-10), category (one of: bug, documentation, feature, "
+        "enhancement, needs discussion, invalid), irrelevant (bool, true if "
+        "score <= 3), reasoning (one sentence)."
     )
     user_prompt = (
         f"Repository context:\n{context}\n\n"
@@ -47,14 +47,14 @@ def _parse_response(response: str) -> dict:
         data = json.loads(response)
         return {
             "score": int(data.get("score", 5)),
-            "category": data.get("category", "needs-discussion"),
+            "category": data.get("category", "needs discussion"),
             "irrelevant": bool(data.get("irrelevant", False)),
             "reasoning": data.get("reasoning", ""),
         }
     except (json.JSONDecodeError, ValueError):
         return {
             "score": 5,
-            "category": "needs-discussion",
+            "category": "needs discussion",
             "irrelevant": False,
             "reasoning": "Failed to parse LLM response",
         }

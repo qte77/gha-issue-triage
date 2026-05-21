@@ -34,7 +34,7 @@ def test_parse_response_invalid_json():
 
     # Assert
     assert result["score"] == 5
-    assert result["category"] == "needs-discussion"
+    assert result["category"] == "needs discussion"
     assert result["irrelevant"] is False
 
 
@@ -48,7 +48,7 @@ def test_parse_response_missing_fields():
 
     # Assert
     assert result["score"] == 3
-    assert result["category"] == "needs-discussion"
+    assert result["category"] == "needs discussion"
 
 
 def test_load_repo_context_no_files(tmp_path):

@@ -15,10 +15,15 @@ def _mk_run(stdout: str = "", returncode: int = 0, stderr: str = ""):
 
 
 def test_valid_labels_set():
-    """VALID_LABELS contains expected labels."""
+    """VALID_LABELS contains expected labels (aligned with GitHub defaults)."""
     assert "bug" in VALID_LABELS
+    assert "documentation" in VALID_LABELS
     assert "duplicate" in VALID_LABELS
-    assert "good-first-issue" in VALID_LABELS
+    assert "good first issue" in VALID_LABELS
+    assert "needs discussion" in VALID_LABELS
+    # Hyphenated legacy spellings are deprecated, not valid
+    assert "good-first-issue" not in VALID_LABELS
+    assert "needs-discussion" not in VALID_LABELS
 
 
 @patch("src.labels.subprocess.run")
@@ -124,6 +129,28 @@ def test_apply_labels_filters_invalid(mock_ensure, mock_run):
     # Assert
     assert result is True
     mock_ensure.assert_called_once_with(["bug"])
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_removes_deprecated_legacy_label(mock_ensure, mock_run):
+    """A previously-applied deprecated label (e.g. 'good-first-issue') is
+    auto-removed in favor of its replacement on the next triage."""
+    # Arrange: issue has the legacy hyphenated 'good-first-issue' from a
+    # prior bot run; current desired set is the new spaced spelling.
+    mock_run.side_effect = [_mk_run(stdout="good-first-issue\n"), _mk_run(returncode=0)]
+
+    # Act
+    result = apply_labels(42, ["good first issue"])
+
+    # Assert: single edit call adds the new name AND removes the legacy one
+    assert result is True
+    assert mock_run.call_count == 2
+    edit_cmd = mock_run.call_args_list[1][0][0]
+    assert "--add-label" in edit_cmd
+    assert "good first issue" in edit_cmd
+    assert "--remove-label" in edit_cmd
+    assert "good-first-issue" in edit_cmd
 
 
 @patch("src.labels.subprocess.run")

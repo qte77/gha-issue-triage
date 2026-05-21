@@ -62,11 +62,11 @@ def main() -> None:
     feasibility = analyze_feasibility(title, body)
     print(f"Feasibility: {feasibility['feasibility']} / Complexity: {feasibility['complexity']}")
     if feasibility["feasibility"] == "yes" and feasibility["complexity"] == "low":
-        labels.append("good-first-issue")
+        labels.append("good first issue")
 
     # Step 4: Category labeling — suppressed when issue is out-of-scope
     category = relevance.get("category", "")
-    valid_categories = ("bug", "feature", "enhancement", "needs-discussion")
+    valid_categories = ("bug", "documentation", "feature", "enhancement", "needs discussion")
     if not relevance.get("irrelevant") and category in valid_categories:
         labels.append(category)
 

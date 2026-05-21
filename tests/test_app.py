@@ -51,7 +51,7 @@ def test_main_dispatches_opened_issue(
     mock_dup.assert_called_once()
     mock_rel.assert_called_once()
     mock_feas.assert_called_once()
-    mock_labels.assert_called_once_with(1, ["good-first-issue", "bug"])
+    mock_labels.assert_called_once_with(1, ["good first issue", "bug"])
     mock_post.assert_called_once()
 
 

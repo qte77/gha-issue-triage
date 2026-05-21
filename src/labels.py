@@ -3,13 +3,26 @@
 import subprocess
 
 VALID_LABELS = {
-    "duplicate",
     "bug",
-    "feature",
+    "documentation",
+    "duplicate",
     "enhancement",
+    "feature",
+    "good first issue",
+    "invalid",
+    "needs discussion",
+}
+
+# Labels the bot previously managed but no longer applies. Reconciliation
+# treats these as managed (so they appear in `managed_current`) but they're
+# excluded from `desired`, which means existing attachments are removed on
+# the next triage of any affected issue. Migrate the label name on the repo
+# itself via `gh label edit OLD --name NEW` to preserve the underlying
+# identifier; this set ensures stale attachments don't linger when only
+# the desired set changed.
+DEPRECATED_LABELS = {
     "good-first-issue",
     "needs-discussion",
-    "invalid",
 }
 
 
@@ -25,7 +38,7 @@ def apply_labels(issue_number: int, labels: list[str]) -> bool:
     """
     desired = {label for label in labels if label in VALID_LABELS}
     current = _get_current_labels(issue_number)
-    managed_current = current & VALID_LABELS
+    managed_current = current & (VALID_LABELS | DEPRECATED_LABELS)
 
     to_add = desired - managed_current
     to_remove = managed_current - desired

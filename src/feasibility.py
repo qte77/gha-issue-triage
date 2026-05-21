@@ -7,7 +7,7 @@ Two orthogonal judgements are produced per issue:
   software, or otherwise not implementable regardless of effort
   (e.g. "build a faster-than-light drive").
 - ``complexity`` (``low`` / ``medium`` / ``high``): if ``feasibility`` is
-  ``yes``, how hard is the implementation? Drives the ``good-first-issue``
+  ``yes``, how hard is the implementation? Drives the ``good first issue``
   label when ``low``. Has no meaning when ``feasibility`` is ``no``.
 
 ``feasibility`` is distinct from ``relevance.irrelevant`` — that flag is

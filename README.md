@@ -17,8 +17,8 @@ analysis (edited in place on re-runs).
 2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
 3. **Feasibility Analysis** — Two orthogonal judgements per issue:
    - `feasibility` (`yes` / `no`) — *can* this be built at all? (`no` means out-of-physics / out-of-scope of software, e.g. "build a faster-than-light drive".)
-   - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good-first-issue` when `low`.
-4. **Auto-Labeling** — Applies labels: `duplicate`, `bug`, `feature`, `enhancement`, `good-first-issue`, `needs-discussion`, `invalid`
+   - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good first issue` when `low`.
+4. **Auto-Labeling** — Applies labels (aligned with GitHub's default label set): `bug`, `documentation`, `duplicate`, `enhancement`, `feature`, `good first issue`, `invalid`, `needs discussion`
 5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
 
 <details>

@@ -29,8 +29,7 @@ def raise_or_degrade_gh_error(stderr: str, context: str) -> None:
                     class_name="fork-pr-readonly-token",
                     status=403,
                     summary=(
-                        "Triage cannot run on forked-repo PRs — "
-                        "`GITHUB_TOKEN` is read-only there."
+                        "Triage cannot run on forked-repo PRs — `GITHUB_TOKEN` is read-only there."
                     ),
                     fix_markdown=(
                         "Use `pull_request_target` only if you accept the security tradeoff. "
@@ -42,9 +41,7 @@ def raise_or_degrade_gh_error(stderr: str, context: str) -> None:
             TriageFailure(
                 class_name="missing-issues-write",
                 status=403,
-                summary=(
-                    "gh CLI 403 from issue/label call — caller workflow lacks issues: write."
-                ),
+                summary=("gh CLI 403 from issue/label call — caller workflow lacks issues: write."),
                 fix_markdown=(
                     "Add `permissions: issues: write` to the caller workflow. "
                     "See `docs/integrations.md#troubleshooting`."

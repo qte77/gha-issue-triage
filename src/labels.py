@@ -90,5 +90,3 @@ def _ensure_labels_exist(labels: list[str]) -> None:
             text=True,
             check=False,
         )
-
-

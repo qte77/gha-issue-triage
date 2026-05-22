@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
+from errors import TriageFailure, TriageFailureError
 from src.app import main
-from src.errors import TriageFailure, TriageFailureError
 
 
 def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", body="body"):

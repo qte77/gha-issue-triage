@@ -282,6 +282,7 @@ def test_post_summary_overwrites_post_failure_via_marker(mock_run):
 @patch("src.comment.subprocess.run")
 def test_post_summary_raises_missing_issues_write(mock_run, capsys):
     """_create_comment gh 403 → TriageFailureError(class_name='missing-issues-write')."""
+
     # Arrange: list returns empty (no existing comment), create returns 403
     def _fail_403():
         m = MagicMock()

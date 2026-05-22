@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.errors import TriageFailureError
+from errors import TriageFailureError
 from src.llm import (
     _call_anthropic,
     _call_github_models,

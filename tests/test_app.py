@@ -247,9 +247,8 @@ def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_f
     env = _write_event(tmp_path, "issues", "opened", issue_number=42)
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
-        with pytest.raises(SystemExit) as exc_info:
-            main()
+    with patch.dict("os.environ", env, clear=False), pytest.raises(SystemExit) as exc_info:
+        main()
 
     # Assert: sys.exit(1) was called
     assert exc_info.value.code == 1

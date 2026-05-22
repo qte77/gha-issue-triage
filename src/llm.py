@@ -113,7 +113,8 @@ def _call_github_models(system_prompt: str, user_prompt: str) -> str:
     try:
         return _request_with_retry(url, payload, headers, _parse_github_models)
     except urllib.error.HTTPError as exc:
-        raise TriageFailureError(_http_error_to_failure(exc, "github", _GITHUB_MODELS_HOST)) from exc
+        failure = _http_error_to_failure(exc, "github", _GITHUB_MODELS_HOST)
+        raise TriageFailureError(failure) from exc
     except urllib.error.URLError as exc:
         raise TriageFailureError(
             TriageFailure(

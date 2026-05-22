@@ -258,7 +258,8 @@ def test_post_summary_overwrites_post_failure_via_marker(mock_run):
     result = post_summary(7, [], RELEVANCE, FEASIBILITY)
 
     assert result is True
-    update_call = mock_run.call_args_list[1]
+    # post_failure consumed calls 0+1; post_summary calls are at 2+3
+    update_call = mock_run.call_args_list[3]
     cmd = update_call.args[0]
     # Must PATCH, not create a new comment
     assert cmd[:4] == ["gh", "api", "-X", "PATCH"]

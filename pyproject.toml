@@ -20,7 +20,23 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "W"]
+select = [
+    "E", "F", "I", "N", "W", "UP",      # baseline
+    "B", "S", "SIM", "RUF", "PT",       # quality
+    "TRY",                              # try/except discipline
+    # strictness deferred to PR β (issue #62):
+    # "ANN", "TC", "PGH", "C90", "D",
+]
+ignore = [
+    "TRY003",  # long error messages outside exception classes — noisy on defensive raises
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]                # asserts are normal in tests
+"src/*"   = ["S603", "S607"]        # subprocess(["gh", ...]) is trusted; gh is a documented dep
 
 [tool.bumpversion]
 current_version = "0.2.4"

@@ -4,7 +4,7 @@ import dataclasses
 
 import pytest
 
-from src.errors import TriageFailure
+from src.errors import TriageFailure, TriageFailureError
 
 
 def test_triage_failure_shape():
@@ -23,3 +23,16 @@ def test_triage_failure_shape():
     # Frozen semantics: mutation must raise FrozenInstanceError
     with pytest.raises(dataclasses.FrozenInstanceError):
         failure.class_name = "mutated"  # type: ignore[misc]
+
+
+def test_triage_failure_error_carries_payload():
+    """TriageFailureError wraps a TriageFailure and str(err) == failure.summary."""
+    failure = TriageFailure(
+        class_name="missing-models-perm",
+        status=401,
+        summary="GitHub Models inference call returned 401/403.",
+        fix_markdown="Add `permissions: models: read`.",
+    )
+    err = TriageFailureError(failure)
+    assert err.failure is failure
+    assert str(err) == failure.summary

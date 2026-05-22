@@ -108,7 +108,7 @@ def _request_with_retry(
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
-            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
+            req = urllib.request.Request(url, data=payload, headers=headers, method="POST")  # noqa: S310  # URL scheme validated at line 105
             with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310  # nosec B310
                 body = json.loads(resp.read().decode())
                 return parser(body)

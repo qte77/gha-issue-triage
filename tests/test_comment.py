@@ -3,7 +3,10 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from src.comment import MARKER, post_failure, post_summary
+import pytest
+
+from errors import TriageFailureError
+from src.comment import MARKER, _create_comment, post_failure, post_summary
 from src.errors import TriageFailure
 
 FAILURE = TriageFailure(
@@ -268,3 +271,28 @@ def test_post_summary_overwrites_post_failure_via_marker(mock_run):
     body_part = [a for a in cmd if isinstance(a, str) and a.startswith("body=")]
     assert body_part, "Expected body= field in PATCH command"
     assert MARKER in body_part[0]
+
+
+# ---------------------------------------------------------------------------
+# C5 — DRY: _create_comment uses shared gh error parser
+# ---------------------------------------------------------------------------
+
+
+@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("src.comment.subprocess.run")
+def test_post_summary_raises_missing_issues_write(mock_run, capsys):
+    """_create_comment gh 403 → TriageFailureError(class_name='missing-issues-write')."""
+    # Arrange: list returns empty (no existing comment), create returns 403
+    def _fail_403():
+        m = MagicMock()
+        m.returncode = 1
+        m.stderr = "HTTP 403: Forbidden"
+        return m
+
+    mock_run.side_effect = [_ok(stdout="[]"), _fail_403()]
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        post_summary(7, [], RELEVANCE, FEASIBILITY)
+
+    assert exc_info.value.failure.class_name == "missing-issues-write"
+    assert exc_info.value.failure.status == 403

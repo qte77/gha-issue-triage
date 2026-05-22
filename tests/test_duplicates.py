@@ -1,8 +1,11 @@
 """Tests for duplicates.py — duplicate detection via fuzzy matching."""
 
 import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+import pytest
+
+from errors import TriageFailureError
 from src.duplicates import _fetch_existing_issues, find_duplicates
 
 SAMPLE_ISSUES = [
@@ -114,3 +117,27 @@ def test_find_duplicates_excludes_self(mock_fetch):
 
     # Assert
     assert all(item["number"] != 1 for item in result)
+
+
+# ---------------------------------------------------------------------------
+# C5 — DRY: _fetch_existing_issues uses shared gh error parser
+# ---------------------------------------------------------------------------
+
+
+@patch("src.duplicates.subprocess.run")
+def test_find_duplicates_raises_not_found(mock_run):
+    """_fetch_existing_issues gh 404 → TriageFailureError(class_name='not-found')."""
+
+    def _fail_404():
+        m = MagicMock()
+        m.returncode = 1
+        m.stderr = "HTTP 404: Not Found"
+        return m
+
+    mock_run.return_value = _fail_404()
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        find_duplicates("title", "body")
+
+    assert exc_info.value.failure.class_name == "not-found"
+    assert exc_info.value.failure.status == 404

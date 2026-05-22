@@ -1,7 +1,7 @@
 """Tests for comment.py — idempotent sticky summary comment."""
 
 import json
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from src.comment import MARKER, post_failure, post_summary
 from src.errors import TriageFailure
@@ -247,24 +247,9 @@ def test_post_failure_updates_existing_marker(mock_find, mock_update):
 @patch("src.comment.subprocess.run")
 def test_post_summary_overwrites_post_failure_via_marker(mock_run):
     """post_summary after post_failure updates the same comment (single marker)."""
-    # Step 1: post_failure creates comment id=77
-    created_body = None
-
-    def capture_create(cmd, **kwargs):
-        nonlocal created_body
-        if cmd[:3] == ["gh", "issue", "comment"]:
-            body_idx = cmd.index("--body") + 1
-            created_body = cmd[body_idx]
-        m = MagicMock()
-        m.returncode = 0
-        m.stdout = ""
-        return m
-
-    # First pair: list→[] (no existing), create comment
+    # Step 1: post_failure creates comment (list returns empty, create succeeds)
     mock_run.side_effect = [_ok(stdout="[]"), _ok()]
     post_failure(7, FAILURE)
-
-    assert created_body is None or True  # side_effect consumed
 
     # Step 2: post_summary sees the marker → updates comment id=77
     existing = [{"id": 77, "body": f"{MARKER}\nfailure body"}]

@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from src.errors import TriageFailureError
+from errors import TriageFailureError
 from src.labels import VALID_LABELS, _ensure_labels_exist, _get_current_labels, apply_labels
 
 

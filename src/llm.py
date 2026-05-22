@@ -8,7 +8,7 @@ from collections.abc import Callable
 from os import getenv
 from urllib.parse import urlparse
 
-from src.errors import TriageFailure, TriageFailureError
+from errors import TriageFailure, TriageFailureError
 
 AI_TOKEN = getenv("AI_TOKEN", "")
 MODEL = getenv("MODEL", "openai/gpt-4.1")

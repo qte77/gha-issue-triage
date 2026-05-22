@@ -4,7 +4,7 @@ import json
 import subprocess
 from os import getenv
 
-from src.errors import TriageFailure
+from errors import TriageFailure
 
 MARKER = "<!-- gha-issue-triage:summary -->"
 

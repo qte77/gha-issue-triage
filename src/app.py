@@ -9,7 +9,7 @@ from duplicates import find_duplicates
 from feasibility import analyze_feasibility
 from labels import apply_labels
 from relevance import score_relevance
-from src.errors import TriageFailureError
+from errors import TriageFailureError
 
 
 def main() -> None:

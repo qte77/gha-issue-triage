@@ -58,7 +58,7 @@ jobs:
       issues: write
       contents: read
     steps:
-      - uses: qte77/gha-issue-triage@v0.3.0
+      - uses: qte77/gha-issue-triage@4a07dd23bdd6bafc625bce6430f0aa5990fc327d  # v0.3.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```

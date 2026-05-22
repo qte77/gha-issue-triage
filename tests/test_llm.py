@@ -1,10 +1,12 @@
 """Tests for llm.py — LLM backend abstraction."""
 
 import json
+import urllib.error
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.errors import TriageFailureError
 from src.llm import (
     _call_anthropic,
     _call_github_models,
@@ -189,3 +191,116 @@ def test_request_with_retry_rejects_non_local_http():
     # Arrange / Act / Assert
     with pytest.raises(ValueError, match="non-https"):
         _request_with_retry("http://evil.example.com/v1", b"{}", {}, _parse_github_models)
+
+
+# ---------------------------------------------------------------------------
+# C2: GitHub Models 401 → missing-models-perm
+# ---------------------------------------------------------------------------
+
+
+def _make_http_error(code: int, url: str = "https://models.github.ai/inference/chat/completions") -> urllib.error.HTTPError:
+    """Build a minimal HTTPError for the given status code."""
+    return urllib.error.HTTPError(url=url, code=code, msg=f"HTTP {code}", hdrs=None, fp=None)  # type: ignore[arg-type]
+
+
+@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_missing_models_perm_on_401(mock_urlopen):
+    """GitHub Models 401 → TriageFailureError(class_name='missing-models-perm', status=401)."""
+    mock_urlopen.side_effect = _make_http_error(401)
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "missing-models-perm"
+    assert err.failure.status == 401
+
+
+# ---------------------------------------------------------------------------
+# C3: Anthropic 401 → invalid-anthropic-key
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_invalid_anthropic_key_on_401(mock_urlopen):
+    """Anthropic 401 → TriageFailureError(class_name='invalid-anthropic-key', status=401)."""
+    mock_urlopen.side_effect = _make_http_error(401, url="https://api.anthropic.com/v1/messages")
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "invalid-anthropic-key"
+    assert err.failure.status == 401
+
+
+# ---------------------------------------------------------------------------
+# C4: OpenAI-compatible 401 → invalid-ai-token
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_invalid_ai_token_on_401(mock_urlopen):
+    """OpenAI-compatible 401 → TriageFailureError(class_name='invalid-ai-token', status=401)."""
+    mock_urlopen.side_effect = _make_http_error(401, url="https://api.mistral.ai/v1/chat/completions")
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "invalid-ai-token"
+    assert err.failure.status == 401
+
+
+# ---------------------------------------------------------------------------
+# C5: 429 any backend → llm-rate-limit
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_rate_limit_on_429(mock_urlopen):
+    """HTTP 429 from any backend → TriageFailureError(class_name='llm-rate-limit', status=429)."""
+    mock_urlopen.side_effect = _make_http_error(429)
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-rate-limit"
+    assert err.failure.status == 429
+
+
+# ---------------------------------------------------------------------------
+# C6: 5xx any backend → llm-upstream
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "")
+@patch("src.llm.urllib.request.urlopen")
+@pytest.mark.parametrize("code", [500, 502, 503])
+def test_call_llm_raises_upstream_on_5xx(mock_urlopen, code):
+    """HTTP 5xx → TriageFailureError(class_name='llm-upstream', status=<code>)."""
+    mock_urlopen.side_effect = _make_http_error(code)
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-upstream"
+    assert err.failure.status == code
+
+
+# ---------------------------------------------------------------------------
+# C7: URLError (network/TLS) → llm-network, status=None
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_network_on_urlerror(mock_urlopen):
+    """URLError (network failure) → TriageFailureError(class_name='llm-network', status=None)."""
+    mock_urlopen.side_effect = urllib.error.URLError("Name or service not known")
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-network"
+    assert err.failure.status is None

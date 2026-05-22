@@ -4,7 +4,28 @@ import json
 import subprocess
 from os import getenv
 
+from src.errors import TriageFailure
+
 MARKER = "<!-- gha-issue-triage:summary -->"
+
+
+def post_failure(issue_number: int, failure: TriageFailure) -> bool:
+    """Post or update a TriageFailure comment on the issue using the shared MARKER.
+
+    Reuses the same sticky-comment slot as post_summary so a subsequent
+    post_summary call overwrites this failure comment (single comment per issue).
+    Returns True on success, False on subprocess failure.
+    """
+    body = f"{MARKER}\n### Triage failure\n\n{failure.summary}\n\n{failure.fix_markdown}"
+    repo = getenv("GITHUB_REPOSITORY", "")
+    if not repo:
+        print("::warning::GITHUB_REPOSITORY not set; skipping failure comment")
+        return False
+
+    existing_id = _find_existing_comment_id(repo, issue_number)
+    if existing_id is not None:
+        return _update_comment(repo, existing_id, body)
+    return _create_comment(issue_number, body)
 
 
 def post_summary(

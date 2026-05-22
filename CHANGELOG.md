@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `documentation` label added to bot vocabulary (#79)
+- `TriageFailure` + sticky failure-comment (`comment.post_failure`) infrastructure (#83)
+- LLM-boundary error wrapping (401/403/429/5xx/network) + `main()` catch (#84)
+- gh-CLI-boundary error wrapping (401/403/404/429) via shared `_gh_errors.py`; transient 5xx degrades (#85, closes #61)
+- `docs/integrations.md` Troubleshooting section, per-class canonical fixes (#85)
+- `docs/architecture.md` boundary failure-policy table (#83)
+- `.github/dependabot.yaml` + `.github/workflows/codeql.yml` (#73)
+- Injection-safety comment in `action.yaml` `env:` block (#77)
+- Live Dependabot status badge in README (#72)
+- `AGENTS.md` agent governance file
+
+### Changed
+
+- **Label rename**: `good-first-issue` → `good first issue`; `needs-discussion` → `needs discussion` (matches GitHub defaults). Legacy spellings auto-removed via `DEPRECATED_LABELS` reconciliation (#79, closes #71, #63)
+- Ruff `select` expanded: `+ N, UP, B, S, SIM, RUF, PT, TRY` (ignore `TRY003`); `mccabe max-complexity=10`; per-file-ignores for `tests/*` and `src/*`. Strictness rules deferred (see #62) (#82)
+- `setup-uv` `cache-dependency-glob` pinned to action's own `uv.lock` — silences consumer warning (#81, closes #65)
+- `github/codeql-action` 4.35.4 → 4.35.5 (#74)
+- All workflow `uses:` SHA-pinned (#60)
+
+### Removed
+
+- README `## Branded claude[bot] author` section (#69)
+- `docs/integrations.md` Path A (`apps/claude` recommendation) — over-privileged + misleading attribution; rationale in #68 / [`ai-agents-research#163`](https://github.com/qte77/ai-agents-research/issues/163) (#78, closes #68)
+
+### Fixed
+
+- Bare imports in `src/{comment,app,llm}.py` (`from src.errors` → `from errors`); would have failed at action runtime under `PYTHONPATH=src` (bundled in #85)
+- README screenshot block repositioned under "What it does" (#69)
+
 ---
 
 ## [0.2.4] - 2026-05-17

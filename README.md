@@ -19,7 +19,7 @@ analysis (edited in place on re-runs).
    - `feasibility` (`yes` / `no`) — *can* this be built at all? (`no` means out-of-physics / out-of-scope of software, e.g. "build a faster-than-light drive".)
    - `complexity` (`low` / `medium` / `high`) — *if* feasible, how hard? Drives `good first issue` when `low`.
 4. **Auto-Labeling** — Applies labels (aligned with GitHub's default label set): `bug`, `documentation`, `duplicate`, `enhancement`, `feature`, `good first issue`, `invalid`, `needs discussion`
-5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones.
+5. **Sticky Summary Comment** — Posts a single bot comment with the analysis (relevance, feasibility, duplicate match). Re-runs edit the same comment instead of stacking new ones. On auth/API failures (missing `models: read`, expired PAT, fork-PR read-only token, rate limit, etc.), the same sticky slot carries a `### Triage failure` comment with the concrete fix — see [`docs/integrations.md#troubleshooting`](docs/integrations.md#troubleshooting).
 
 <details>
 <summary>Screenshot — triaged issues in this repo</summary>

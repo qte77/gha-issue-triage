@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from errors import TriageFailureError
-from src.comment import MARKER, _create_comment, post_failure, post_summary
+from src.comment import MARKER, post_failure, post_summary
 from src.errors import TriageFailure
 
 FAILURE = TriageFailure(

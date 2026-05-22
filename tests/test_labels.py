@@ -1,7 +1,8 @@
 """Tests for labels.py — auto-labeling via gh CLI."""
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from errors import TriageFailureError
 from src.labels import VALID_LABELS, _ensure_labels_exist, _get_current_labels, apply_labels

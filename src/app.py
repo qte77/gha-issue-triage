@@ -6,10 +6,10 @@ from os import getenv
 
 from comment import post_failure, post_summary
 from duplicates import find_duplicates
+from errors import TriageFailureError
 from feasibility import analyze_feasibility
 from labels import apply_labels
 from relevance import score_relevance
-from errors import TriageFailureError
 
 
 def main() -> None:

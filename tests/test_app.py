@@ -1,8 +1,9 @@
 """Tests for app.py — event dispatch orchestrator."""
 
 import json
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import call, patch
 
 from src.app import main
 from src.errors import TriageFailure, TriageFailureError

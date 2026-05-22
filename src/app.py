@@ -4,11 +4,12 @@ import json
 import sys
 from os import getenv
 
-from comment import post_summary
+from comment import post_failure, post_summary
 from duplicates import find_duplicates
 from feasibility import analyze_feasibility
 from labels import apply_labels
 from relevance import score_relevance
+from src.errors import TriageFailureError
 
 
 def main() -> None:
@@ -43,42 +44,47 @@ def main() -> None:
 
     print(f"Triaging issue #{issue_number}: {title}")
 
-    labels: list[str] = []
+    try:
+        labels: list[str] = []
 
-    # Step 1: Duplicate detection
-    duplicates = find_duplicates(title, body, issue_number=issue_number)
-    if duplicates:
-        top = duplicates[0]
-        print(f"Potential duplicate: #{top['number']} (score: {top['score']:.2f})")
-        labels.append("duplicate")
+        # Step 1: Duplicate detection
+        duplicates = find_duplicates(title, body, issue_number=issue_number)
+        if duplicates:
+            top = duplicates[0]
+            print(f"Potential duplicate: #{top['number']} (score: {top['score']:.2f})")
+            labels.append("duplicate")
 
-    # Step 2: Relevance scoring
-    relevance = score_relevance(title, body)
-    print(f"Relevance score: {relevance['score']}")
-    if relevance.get("irrelevant"):
-        labels.append("invalid")
+        # Step 2: Relevance scoring
+        relevance = score_relevance(title, body)
+        print(f"Relevance score: {relevance['score']}")
+        if relevance.get("irrelevant"):
+            labels.append("invalid")
 
-    # Step 3: Feasibility analysis
-    feasibility = analyze_feasibility(title, body)
-    print(f"Feasibility: {feasibility['feasibility']} / Complexity: {feasibility['complexity']}")
-    if feasibility["feasibility"] == "yes" and feasibility["complexity"] == "low":
-        labels.append("good first issue")
+        # Step 3: Feasibility analysis
+        feasibility = analyze_feasibility(title, body)
+        print(f"Feasibility: {feasibility['feasibility']} / Complexity: {feasibility['complexity']}")
+        if feasibility["feasibility"] == "yes" and feasibility["complexity"] == "low":
+            labels.append("good first issue")
 
-    # Step 4: Category labeling — suppressed when issue is out-of-scope
-    category = relevance.get("category", "")
-    valid_categories = ("bug", "documentation", "feature", "enhancement", "needs discussion")
-    if not relevance.get("irrelevant") and category in valid_categories:
-        labels.append(category)
+        # Step 4: Category labeling — suppressed when issue is out-of-scope
+        category = relevance.get("category", "")
+        valid_categories = ("bug", "documentation", "feature", "enhancement", "needs discussion")
+        if not relevance.get("irrelevant") and category in valid_categories:
+            labels.append(category)
 
-    # Step 5: Apply labels
-    if labels:
-        apply_labels(issue_number, labels)
-        print(f"Applied labels: {labels}")
-    else:
-        print("No labels to apply")
+        # Step 5: Apply labels
+        if labels:
+            apply_labels(issue_number, labels)
+            print(f"Applied labels: {labels}")
+        else:
+            print("No labels to apply")
 
-    # Step 6: Post sticky analysis summary comment
-    post_summary(issue_number, duplicates, relevance, feasibility)
+        # Step 6: Post sticky analysis summary comment
+        post_summary(issue_number, duplicates, relevance, feasibility)
+
+    except TriageFailureError as e:
+        post_failure(issue_number, e.failure)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -198,9 +198,14 @@ def test_request_with_retry_rejects_non_local_http():
 # ---------------------------------------------------------------------------
 
 
-def _make_http_error(code: int, url: str = "https://models.github.ai/inference/chat/completions") -> urllib.error.HTTPError:
+_GH_MODELS_URL = "https://models.github.ai/inference/chat/completions"
+
+
+def _make_http_error(code: int, url: str = _GH_MODELS_URL) -> urllib.error.HTTPError:
     """Build a minimal HTTPError for the given status code."""
-    return urllib.error.HTTPError(url=url, code=code, msg=f"HTTP {code}", hdrs=None, fp=None)  # type: ignore[arg-type]
+    return urllib.error.HTTPError(  # type: ignore[arg-type]
+        url=url, code=code, msg=f"HTTP {code}", hdrs=None, fp=None
+    )
 
 
 @patch("src.llm.OPENAI_API_BASE", "")
@@ -243,7 +248,8 @@ def test_call_llm_raises_invalid_anthropic_key_on_401(mock_urlopen):
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_invalid_ai_token_on_401(mock_urlopen):
     """OpenAI-compatible 401 → TriageFailureError(class_name='invalid-ai-token', status=401)."""
-    mock_urlopen.side_effect = _make_http_error(401, url="https://api.mistral.ai/v1/chat/completions")
+    oai_url = "https://api.mistral.ai/v1/chat/completions"
+    mock_urlopen.side_effect = _make_http_error(401, url=oai_url)
     with pytest.raises(TriageFailureError) as exc_info:
         call_llm("sys", "usr")
     err = exc_info.value

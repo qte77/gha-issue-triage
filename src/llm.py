@@ -74,7 +74,7 @@ def _http_error_to_failure(exc: urllib.error.HTTPError, backend: str, host: str)
             ),
         )
     # Unhandled HTTP error — re-raise as-is so existing RuntimeError path handles it
-    raise exc  # noqa: TRY201
+    raise exc
 
 
 def call_llm(system_prompt: str, user_prompt: str) -> str:
@@ -211,9 +211,9 @@ def _request_with_retry(
             with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310  # nosec B310
                 body = json.loads(resp.read().decode())
                 return parser(body)
-        except (urllib.error.HTTPError, urllib.error.URLError):
-            raise
         except Exception as exc:
+            if isinstance(exc, (urllib.error.HTTPError, urllib.error.URLError)):
+                raise
             last_error = exc
             if attempt < MAX_RETRIES - 1:
                 delay = RETRY_BASE_DELAY * (2**attempt)

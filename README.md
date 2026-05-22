@@ -1,6 +1,6 @@
 # gha-issue-triage
 
-![Version](https://img.shields.io/badge/version-0.2.4-8A2BE2)
+![Version](https://img.shields.io/badge/version-0.3.0-8A2BE2)
 ![License](https://img.shields.io/badge/license-Apache--2.0-blue)
 [![Tests](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml)
 ![CodeFactor](https://www.codefactor.io/repository/github/qte77/gha-issue-triage/badge)
@@ -58,7 +58,7 @@ jobs:
       issues: write
       contents: read
     steps:
-      - uses: qte77/gha-issue-triage@v0.2.4
+      - uses: qte77/gha-issue-triage@v0.3.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```

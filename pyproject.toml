@@ -1,6 +1,6 @@
 [project]
 name = "gha-issue-triage"
-version = "0.2.4"
+version = "0.3.0"
 description = "AI-powered issue triage: duplicate detection, relevance scoring, feasibility analysis, auto-labeling, and a sticky summary comment per issue"
 authors = [
     {name = "qte77", email = "qte@77.gh"}
@@ -39,7 +39,7 @@ max-complexity = 10
 "src/*"   = ["S603", "S607"]        # subprocess(["gh", ...]) is trusted; gh is a documented dep
 
 [tool.bumpversion]
-current_version = "0.2.4"
+current_version = "0.3.0"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
 serialize = ["{major}.{minor}.{patch}"]
 commit = false

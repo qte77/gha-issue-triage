@@ -1,7 +1,9 @@
 """Tests for labels.py — auto-labeling via gh CLI."""
 
+import pytest
 from unittest.mock import MagicMock, patch
 
+from src.errors import TriageFailureError
 from src.labels import VALID_LABELS, _ensure_labels_exist, _get_current_labels, apply_labels
 
 
@@ -225,3 +227,112 @@ def test_ensure_labels_exist_creates_labels(mock_run):
     calls = mock_run.call_args_list
     assert "bug" in calls[0][0][0]
     assert "feature" in calls[1][0][0]
+
+
+# ---------------------------------------------------------------------------
+# C1 — gh 403 (missing issues:write) → TriageFailureError
+# ---------------------------------------------------------------------------
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_raises_missing_issues_write_on_403(mock_ensure, mock_run):
+    """gh issue edit returns HTTP 403 → TriageFailureError(class_name='missing-issues-write')."""
+    # Arrange: view returns empty; edit returns 403 without fork signature
+    mock_run.side_effect = [
+        _mk_run(stdout=""),
+        _mk_run(returncode=1, stderr="HTTP 403: Forbidden"),
+    ]
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        apply_labels(42, ["bug"])
+
+    assert exc_info.value.failure.class_name == "missing-issues-write"
+    assert exc_info.value.failure.status == 403
+
+
+# ---------------------------------------------------------------------------
+# C2 — gh 403 fork-PR readonly → TriageFailureError(class_name='fork-pr-readonly-token')
+# ---------------------------------------------------------------------------
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_raises_fork_pr_readonly_on_resource_not_accessible(mock_ensure, mock_run):
+    """gh edit stderr 'Resource not accessible by integration' → fork-pr-readonly-token."""
+    # Arrange
+    mock_run.side_effect = [
+        _mk_run(stdout=""),
+        _mk_run(returncode=1, stderr="HTTP 403: Resource not accessible by integration"),
+    ]
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        apply_labels(42, ["bug"])
+
+    assert exc_info.value.failure.class_name == "fork-pr-readonly-token"
+    assert exc_info.value.failure.status == 403
+
+
+# ---------------------------------------------------------------------------
+# C3 — gh 404 → TriageFailureError(class_name='not-found')
+# ---------------------------------------------------------------------------
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_raises_not_found_on_404(mock_ensure, mock_run):
+    """gh edit returns HTTP 404 → TriageFailureError(class_name='not-found')."""
+    # Arrange
+    mock_run.side_effect = [
+        _mk_run(stdout=""),
+        _mk_run(returncode=1, stderr="HTTP 404: Not Found"),
+    ]
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        apply_labels(42, ["bug"])
+
+    assert exc_info.value.failure.class_name == "not-found"
+    assert exc_info.value.failure.status == 404
+
+
+# ---------------------------------------------------------------------------
+# C4 — gh 429 → TriageFailureError(class_name='gh-rate-limit')
+# ---------------------------------------------------------------------------
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_raises_rate_limit_on_429(mock_ensure, mock_run):
+    """gh edit returns HTTP 429 → TriageFailureError(class_name='gh-rate-limit')."""
+    # Arrange
+    mock_run.side_effect = [
+        _mk_run(stdout=""),
+        _mk_run(returncode=1, stderr="HTTP 429: Too Many Requests"),
+    ]
+
+    with pytest.raises(TriageFailureError) as exc_info:
+        apply_labels(42, ["bug"])
+
+    assert exc_info.value.failure.class_name == "gh-rate-limit"
+    assert exc_info.value.failure.status == 429
+
+
+# ---------------------------------------------------------------------------
+# C1-C4 extra: gh 5xx → wrap-degrade (returns False, does not raise)
+# ---------------------------------------------------------------------------
+
+
+@patch("src.labels.subprocess.run")
+@patch("src.labels._ensure_labels_exist")
+def test_apply_labels_degrades_on_5xx(mock_ensure, mock_run, capsys):
+    """gh edit returns HTTP 500 → wrap-degrade: returns False, prints warning, does not raise."""
+    # Arrange
+    mock_run.side_effect = [
+        _mk_run(stdout=""),
+        _mk_run(returncode=1, stderr="HTTP 500: Internal Server Error"),
+    ]
+
+    result = apply_labels(42, ["bug"])
+
+    assert result is False
+    assert "::warning::" in capsys.readouterr().out

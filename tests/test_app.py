@@ -1,9 +1,11 @@
 """Tests for app.py — event dispatch orchestrator."""
 
 import json
-from unittest.mock import patch
+import pytest
+from unittest.mock import call, patch
 
 from src.app import main
+from src.errors import TriageFailure, TriageFailureError
 
 
 def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", body="body"):
@@ -219,3 +221,39 @@ def test_main_relevant_applies_category_label(
     labels = mock_labels.call_args[0][1]
     assert "feature" in labels
     assert "invalid" not in labels
+
+
+# ---------------------------------------------------------------------------
+# C8: main() catches TriageFailureError, calls post_failure, exits non-zero
+# ---------------------------------------------------------------------------
+
+
+@patch("src.app.post_failure")
+@patch(
+    "src.app.find_duplicates",
+    side_effect=TriageFailureError(
+        TriageFailure(
+            class_name="llm-rate-limit",
+            status=429,
+            summary="LLM backend rate-limit hit (HTTP 429).",
+            fix_markdown="Re-run after Retry-After.",
+        )
+    ),
+)
+def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_failure, tmp_path):
+    """main() catches TriageFailureError, calls post_failure, exits with code 1."""
+    # Arrange
+    env = _write_event(tmp_path, "issues", "opened", issue_number=42)
+
+    # Act
+    with patch.dict("os.environ", env, clear=False):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+
+    # Assert: sys.exit(1) was called
+    assert exc_info.value.code == 1
+    # Assert: post_failure was called with correct issue number and failure payload
+    mock_post_failure.assert_called_once()
+    call_args = mock_post_failure.call_args
+    assert call_args[0][0] == 42  # issue_number
+    assert call_args[0][1].class_name == "llm-rate-limit"

@@ -119,7 +119,86 @@ with:
 
 1. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
 
+## Troubleshooting
+
+When the action hits an auth/API failure it posts a sticky comment to the
+triggering issue (via `src/comment.py:post_failure`) and exits non-zero so
+CI stays red. Each class below corresponds to a `TriageFailure.class_name`
+value emitted by the action. The comment posted to the issue links to this
+section via anchor.
+
+### `missing-models-perm` — HTTP 401/403 from GitHub Models
+
+The action's LLM call to `models.github.ai` was rejected. The most common
+cause is a missing `permissions: models: read` block in the caller workflow.
+Add `permissions: models: read` to your workflow, or supply a PAT via the
+`AI_TOKEN` input (classic PAT — no scope required; fine-grained PAT — grant
+*Models: Read-only*). See [Auth for `AI_TOKEN`](#auth-for-ai_token) above.
+
+### `invalid-anthropic-key` — HTTP 401 from Anthropic
+
+`ANTHROPIC_API_KEY` is set but was rejected by `api.anthropic.com`. Rotate
+the key in your repository secrets, or unset `ANTHROPIC_API_KEY` entirely to
+fall back to the GitHub Models backend.
+
+### `invalid-ai-token` — HTTP 401 from OpenAI-compatible endpoint
+
+The Bearer token in `AI_TOKEN` was rejected by the custom `OPENAI_API_BASE`
+endpoint. Verify the key is valid for that provider and that the endpoint URL
+is correct.
+
+### `llm-rate-limit` — HTTP 429 from LLM backend
+
+The LLM backend returned a rate-limit response. Re-run the workflow after
+the `Retry-After` window elapses. For sustained traffic, supply a PAT via
+`AI_TOKEN` (higher per-user quota) or switch to an OpenAI-compatible backend
+(Path B above) with its own quota.
+
+### `llm-upstream` — HTTP 5xx from LLM backend
+
+A transient upstream error was returned by the LLM provider. No caller change
+is needed — re-run the workflow.
+
+### `llm-network` — Network/TLS error reaching LLM backend
+
+The runner could not reach the LLM host (DNS failure, TLS error, etc.).
+This is typically a transient runner-side issue. Re-run the workflow.
+
+### `missing-issues-write` — HTTP 403 from `gh issue edit` / `gh issue comment` / `gh label create`
+
+The caller workflow's `GITHUB_TOKEN` lacks the `issues: write` permission.
+Add the following to the job that calls this action:
+
+```yaml
+permissions:
+  issues: write
+```
+
+### `fork-pr-readonly-token` — HTTP 403 with "Resource not accessible by integration"
+
+The action was triggered from a forked-repository pull request, where
+`GITHUB_TOKEN` is read-only by GitHub security policy. The action cannot
+apply labels or post comments in this context. If you need triage on forked
+PRs, use `pull_request_target` instead of `pull_request` — but read the
+[security implications][pr-target-docs] carefully before doing so.
+
+### `not-found` — HTTP 404 from any `gh` call
+
+The action could not reach the issue or repository. Common causes:
+- `GH_TOKEN` scope is too narrow (private repos require the `repo` scope)
+- The issue number or repository slug in the event payload is incorrect
+
+Supply a fine-grained PAT or classic PAT with `repo` scope via `GH_TOKEN`.
+
+### `gh-rate-limit` — HTTP 429 from GitHub API
+
+The GitHub REST API rate-limit was hit. Re-run the workflow after the limit
+resets (typically within an hour). For high-volume repositories, supply a
+PAT via `GH_TOKEN` — authenticated requests use a higher per-user quota than
+the default `GITHUB_TOKEN` (`github-actions[bot]`).
+
 [gh-models-cat]: https://github.com/marketplace/models
 [gh-models-docs]: https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models
 [devstral-card]: https://huggingface.co/mistralai/Devstral-Small-2-24B-Instruct-2512
 [mistral-api]: https://docs.mistral.ai/
+[pr-target-docs]: https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows#pull_request_target

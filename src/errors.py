@@ -19,3 +19,11 @@ class TriageFailure:
     status: int | None
     summary: str
     fix_markdown: str
+
+
+class TriageFailureError(Exception):
+    """Exception carrying a TriageFailure payload for boundary code to raise."""
+
+    def __init__(self, failure: TriageFailure) -> None:
+        super().__init__(failure.summary)
+        self.failure = failure

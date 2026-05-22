@@ -2,9 +2,13 @@
 
 import json
 import time
+import urllib.error
 import urllib.request
 from collections.abc import Callable
 from os import getenv
+from urllib.parse import urlparse
+
+from src.errors import TriageFailure, TriageFailureError
 
 AI_TOKEN = getenv("AI_TOKEN", "")
 MODEL = getenv("MODEL", "openai/gpt-4.1")
@@ -13,6 +17,64 @@ OPENAI_API_BASE = getenv("OPENAI_API_BASE", "")
 
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2
+
+_GITHUB_MODELS_HOST = "models.github.ai"
+_ANTHROPIC_HOST = "api.anthropic.com"
+
+
+def _http_error_to_failure(exc: urllib.error.HTTPError, backend: str, host: str) -> TriageFailure:
+    """Map an HTTPError from a known backend to a TriageFailure."""
+    code = exc.code
+    if code == 429:
+        return TriageFailure(
+            class_name="llm-rate-limit",
+            status=429,
+            summary="LLM backend rate-limit hit (HTTP 429).",
+            fix_markdown=(
+                "Re-run the workflow after `Retry-After` elapses. For sustained traffic, "
+                "supply a PAT via `AI_TOKEN` (higher per-user quota) or switch to Path B "
+                "per `docs/integrations.md`."
+            ),
+        )
+    if 500 <= code <= 599:
+        return TriageFailure(
+            class_name="llm-upstream",
+            status=code,
+            summary=f"LLM backend returned {code} (transient upstream error).",
+            fix_markdown="Re-run the workflow. No caller change needed.",
+        )
+    if code in (401, 403):
+        if backend == "github":
+            return TriageFailure(
+                class_name="missing-models-perm",
+                status=code,
+                summary="GitHub Models inference call returned 401/403.",
+                fix_markdown=(
+                    "Add `permissions: models: read` to the caller workflow, or supply a PAT "
+                    "via `AI_TOKEN`. See `docs/integrations.md#auth-for-ai_token`."
+                ),
+            )
+        if backend == "anthropic":
+            return TriageFailure(
+                class_name="invalid-anthropic-key",
+                status=401,
+                summary="Anthropic API rejected the key.",
+                fix_markdown=(
+                    "`ANTHROPIC_API_KEY` is invalid or expired. Rotate or unset to fall back "
+                    "to GitHub Models."
+                ),
+            )
+        # openai-compat
+        return TriageFailure(
+            class_name="invalid-ai-token",
+            status=401,
+            summary="OpenAI-compatible endpoint rejected the bearer token.",
+            fix_markdown=(
+                f"`AI_TOKEN` is invalid for `{host}`. Check the provider's key + endpoint URL."
+            ),
+        )
+    # Unhandled HTTP error — re-raise as-is so existing RuntimeError path handles it
+    raise exc  # noqa: TRY201
 
 
 def call_llm(system_prompt: str, user_prompt: str) -> str:
@@ -48,12 +110,25 @@ def _call_github_models(system_prompt: str, user_prompt: str) -> str:
         "Authorization": f"Bearer {AI_TOKEN}",
     }
 
-    return _request_with_retry(url, payload, headers, _parse_github_models)
+    try:
+        return _request_with_retry(url, payload, headers, _parse_github_models)
+    except urllib.error.HTTPError as exc:
+        raise TriageFailureError(_http_error_to_failure(exc, "github", _GITHUB_MODELS_HOST)) from exc
+    except urllib.error.URLError as exc:
+        raise TriageFailureError(
+            TriageFailure(
+                class_name="llm-network",
+                status=None,
+                summary=f"Could not reach {_GITHUB_MODELS_HOST} from the runner.",
+                fix_markdown="Likely transient runner-side; re-run the workflow.",
+            )
+        ) from exc
 
 
 def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
     """Call an OpenAI-compatible Chat Completions endpoint (Mistral, Ollama, vLLM, ...)."""
     url = f"{OPENAI_API_BASE.rstrip('/')}/chat/completions"
+    host = urlparse(OPENAI_API_BASE).hostname or OPENAI_API_BASE
     payload = json.dumps(
         {
             "model": MODEL,
@@ -71,7 +146,19 @@ def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
         "Authorization": f"Bearer {AI_TOKEN}",
     }
 
-    return _request_with_retry(url, payload, headers, _parse_github_models)
+    try:
+        return _request_with_retry(url, payload, headers, _parse_github_models)
+    except urllib.error.HTTPError as exc:
+        raise TriageFailureError(_http_error_to_failure(exc, "openai-compat", host)) from exc
+    except urllib.error.URLError as exc:
+        raise TriageFailureError(
+            TriageFailure(
+                class_name="llm-network",
+                status=None,
+                summary=f"Could not reach {host} from the runner.",
+                fix_markdown="Likely transient runner-side; re-run the workflow.",
+            )
+        ) from exc
 
 
 def _call_anthropic(system_prompt: str, user_prompt: str) -> str:
@@ -92,7 +179,19 @@ def _call_anthropic(system_prompt: str, user_prompt: str) -> str:
         "anthropic-version": "2023-06-01",
     }
 
-    return _request_with_retry(url, payload, headers, _parse_anthropic)
+    try:
+        return _request_with_retry(url, payload, headers, _parse_anthropic)
+    except urllib.error.HTTPError as exc:
+        raise TriageFailureError(_http_error_to_failure(exc, "anthropic", _ANTHROPIC_HOST)) from exc
+    except urllib.error.URLError as exc:
+        raise TriageFailureError(
+            TriageFailure(
+                class_name="llm-network",
+                status=None,
+                summary=f"Could not reach {_ANTHROPIC_HOST} from the runner.",
+                fix_markdown="Likely transient runner-side; re-run the workflow.",
+            )
+        ) from exc
 
 
 def _request_with_retry(
@@ -112,6 +211,8 @@ def _request_with_retry(
             with urllib.request.urlopen(req, timeout=60) as resp:  # noqa: S310  # nosec B310
                 body = json.loads(resp.read().decode())
                 return parser(body)
+        except (urllib.error.HTTPError, urllib.error.URLError):
+            raise
         except Exception as exc:
             last_error = exc
             if attempt < MAX_RETRIES - 1:

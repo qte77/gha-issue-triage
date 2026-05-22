@@ -2,7 +2,7 @@
 
 import subprocess
 
-from errors import TriageFailure, TriageFailureError
+from _gh_errors import raise_or_degrade_gh_error
 
 VALID_LABELS = {
     "bug",
@@ -61,7 +61,7 @@ def apply_labels(issue_number: int, labels: list[str]) -> bool:
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if result.returncode != 0:
-        _raise_or_degrade_gh_error(result.stderr, "Failed to reconcile labels")
+        raise_or_degrade_gh_error(result.stderr, "Failed to reconcile labels")
         return False
 
     return True
@@ -92,64 +92,3 @@ def _ensure_labels_exist(labels: list[str]) -> None:
         )
 
 
-def _raise_or_degrade_gh_error(stderr: str, context: str) -> None:
-    """Parse gh CLI stderr and raise TriageFailureError for known errors.
-
-    Raises TriageFailureError for 403/404/429 HTTP errors.
-    For transient 5xx, prints a warning and returns (wrap-degrade).
-    """
-    if "HTTP 403" in stderr or "403 Forbidden" in stderr:
-        if "Resource not accessible by integration" in stderr:
-            raise TriageFailureError(
-                TriageFailure(
-                    class_name="fork-pr-readonly-token",
-                    status=403,
-                    summary=(
-                        "Triage cannot run on forked-repo PRs — "
-                        "`GITHUB_TOKEN` is read-only there."
-                    ),
-                    fix_markdown=(
-                        "Use `pull_request_target` only if you accept the security tradeoff. "
-                        "See `docs/integrations.md#troubleshooting`."
-                    ),
-                )
-            )
-        raise TriageFailureError(
-            TriageFailure(
-                class_name="missing-issues-write",
-                status=403,
-                summary=(
-                    "gh CLI 403 from issue/label call — caller workflow lacks issues: write."
-                ),
-                fix_markdown=(
-                    "Add `permissions: issues: write` to the caller workflow. "
-                    "See `docs/integrations.md#troubleshooting`."
-                ),
-            )
-        )
-    if "HTTP 404" in stderr:
-        raise TriageFailureError(
-            TriageFailure(
-                class_name="not-found",
-                status=404,
-                summary="gh CLI 404 — issue or repo not reachable from the supplied token.",
-                fix_markdown=(
-                    "`GH_TOKEN` scope likely too narrow; for private repos pass a PAT with "
-                    "`repo` scope. See `docs/integrations.md#troubleshooting`."
-                ),
-            )
-        )
-    if "HTTP 429" in stderr:
-        raise TriageFailureError(
-            TriageFailure(
-                class_name="gh-rate-limit",
-                status=429,
-                summary="GitHub API rate-limit hit (HTTP 429).",
-                fix_markdown=(
-                    "Re-run after the limit resets. For high-volume repos consider a PAT via "
-                    "`GH_TOKEN` (higher per-user quota). See `docs/integrations.md#troubleshooting`."
-                ),
-            )
-        )
-    # 5xx and other transient errors: wrap-degrade
-    print(f"::warning::{context}: {stderr}")

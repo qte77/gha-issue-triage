@@ -4,6 +4,7 @@ import json
 import subprocess
 from os import getenv
 
+from _gh_errors import raise_or_degrade_gh_error
 from errors import TriageFailure
 
 MARKER = "<!-- gha-issue-triage:summary -->"
@@ -120,7 +121,7 @@ def _create_comment(issue_number: int, body: str) -> bool:
         check=False,
     )
     if result.returncode != 0:
-        print(f"::warning::Failed to create summary comment: {result.stderr}")
+        raise_or_degrade_gh_error(result.stderr, "Failed to create summary comment")
         return False
     return True
 
@@ -142,6 +143,6 @@ def _update_comment(repo: str, comment_id: int, body: str) -> bool:
         check=False,
     )
     if result.returncode != 0:
-        print(f"::warning::Failed to update summary comment: {result.stderr}")
+        raise_or_degrade_gh_error(result.stderr, "Failed to update summary comment")
         return False
     return True

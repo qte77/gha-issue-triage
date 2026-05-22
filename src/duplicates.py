@@ -5,6 +5,8 @@ import subprocess
 from difflib import SequenceMatcher
 from os import getenv
 
+from _gh_errors import raise_or_degrade_gh_error
+
 
 def find_duplicates(title: str, body: str, issue_number: int | None = None) -> list[dict]:
     """Find existing issues that are potential duplicates.
@@ -61,7 +63,7 @@ def _fetch_existing_issues() -> list[dict]:
     )
 
     if result.returncode != 0:
-        print(f"::warning::gh issue list failed: {result.stderr}")
+        raise_or_degrade_gh_error(result.stderr, "gh issue list failed")
         return []
 
     try:

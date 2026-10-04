@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.4.0] - 2026-10-04
+
 ### Added
 
 - `api_base` + `llm-api-key` inputs — canonical names for the OpenAI-compatible backend wiring (Cloudflare Workers AI, Mistral, Cerebras, Ollama, ...). `OPENAI_API_BASE` / `AI_TOKEN` remain as deprecated aliases, resolved by `action.yaml` for backward compatibility (#109, #110)

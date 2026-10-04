@@ -23,6 +23,7 @@ the sibling repo `qte77/analyze-stock-kpi`).
 | Boundary | File / function | Policy | On failure |
 | --- | --- | --- | --- |
 | LLM call (GitHub Models / Anthropic / OpenAI-compat) | `llm.call_llm` | wrap-comment-fail-loud | post `TriageFailure` comment, `sys.exit(1)` |
+| LLM response body decode/shape (`_decode_response`, `_extract_content`) | `llm.py` | wrap-comment-fail-loud, not retried | empty/non-JSON body or missing `choices`/`content` → `TriageFailure(class_name="llm-bad-response")` naming host + status, never the token |
 | gh CLI invocations (`issue view/edit/comment`, `label create`) | `labels`, `comment`, `duplicates` | wrap-comment-fail-loud for 401/403/404/429; wrap-degrade for transient 5xx | comment + exit OR log warning + continue |
 | Sticky-comment post itself | `comment.post_summary` | wrap-degrade | log warning; never block (labels are already applied by then) |
 | Duplicate detection in-process | `duplicates.find_duplicates` | wrap-degrade | empty list; triage continues |

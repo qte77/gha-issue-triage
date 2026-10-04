@@ -35,13 +35,17 @@ analysis (edited in place on re-runs).
 
 | Name | Required | Default | Description |
 | --- | --- | --- | --- |
-| `GH_TOKEN` | Yes | — | GitHub token for gh CLI |
-| `AI_TOKEN` | No | `github.token` | GitHub Models API token. Default works as long as the caller workflow declares `permissions: models: read`. See [`docs/integrations.md`](docs/integrations.md) for PAT alternatives. |
-| `MODEL` | No | `openai/gpt-4.1` | LLM model |
-| `ANTHROPIC_API_KEY` | No | — | Anthropic API key (alternative backend) |
-| `OPENAI_API_BASE` | No | — | Base URL of an OpenAI-compatible endpoint (Mistral/Ollama/vLLM); takes precedence when set |
+| `GH_TOKEN` | Yes | — | GitHub token for gh CLI (issue/label API calls) |
+| `api_base` | No | — | Base URL of an OpenAI-compatible endpoint (Cloudflare Workers AI/Mistral/Cerebras/Ollama/vLLM); takes precedence when set |
+| `llm-api-key` | No | — | Bearer token for the LLM backend. Falls back to the deprecated `AI_TOKEN` input, then `github.token` |
+| `MODEL` | No | `openai/gpt-4.1` | LLM model. GitHub Models default is **retired** — set a provider-specific ID when `api_base` is set |
+| `ANTHROPIC_API_KEY` | No | — | Anthropic API key (native Messages API backend) |
+| `OPENAI_API_BASE` | No | — | **Deprecated** — alias for `api_base` |
+| `AI_TOKEN` | No | `github.token` | **Deprecated** — alias for `llm-api-key` |
 | `MAX_DUPLICATES` | No | `10` | Max duplicate candidates |
 | `SIMILARITY_THRESHOLD` | No | `0.6` | Fuzzy match threshold (0-1) |
+
+> **GitHub Models was retired 2026-07-30.** The action's historical default backend no longer works. Set `api_base` + `llm-api-key` (see "OpenAI-compatible backend" below) or `ANTHROPIC_API_KEY`.
 
 ## Usage
 
@@ -61,6 +65,9 @@ jobs:
       - uses: qte77/gha-issue-triage@4a07dd23bdd6bafc625bce6430f0aa5990fc327d  # v0.3.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
+          MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+          api_base: ${{ vars.LLM_BASE_URL }}  # https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
 ```
 
 ## Try it in this repo
@@ -88,24 +95,17 @@ The duplicate line is omitted when no duplicate is found.
 
 ## Choosing a model
 
-`MODEL` defaults to `openai/gpt-4.1` (GitHub Models). Issue triage is a small/fast model workload — swap to a cheaper or faster model with a one-line caller change. No code change required.
+`MODEL` defaults to `openai/gpt-4.1` (GitHub Models) for backward compatibility, but **GitHub Models was retired 2026-07-30** — that default no longer works. Set `api_base` to use any OpenAI-compatible backend (see below); `MODEL` then selects the model for that backend.
 
-| Use case | Suggested `MODEL` |
-| --- | --- |
-| Default — strongest general model on free tier | `openai/gpt-4.1` |
-| Speed/cost balance | `openai/gpt-4o-mini` |
-| Highest throughput | `microsoft/phi-4-mini-instruct` |
-| Code-heavy repo (better feasibility scoring) | `deepseek/deepseek-v3-0324` |
-| Open-weights preference | `meta/llama-4-scout-17b-16e-instruct` |
+See [`docs/integrations.md`](docs/integrations.md) for the historical GitHub Models catalog reference and per-model notes.
 
-See [`docs/integrations.md`](docs/integrations.md) for the full catalog, rationale, and per-model notes.
+## OpenAI-compatible backend (Cloudflare Workers AI / Mistral / Cerebras / Ollama / ...)
 
-## OpenAI-compatible backend (Mistral / Cerebras / Ollama / ...)
+Set `api_base` to point at any OpenAI-compatible Chat Completions endpoint. `llm-api-key` is sent as a Bearer token; `MODEL` selects the model. Localhost `http://` is permitted for self-hosted backends; all other URLs must be `https://`. (`OPENAI_API_BASE` / `AI_TOKEN` remain as deprecated aliases for `api_base` / `llm-api-key`.)
 
-Set `OPENAI_API_BASE` to point at any OpenAI-compatible Chat Completions endpoint. `AI_TOKEN` is sent as a Bearer token; `MODEL` selects the model. Localhost `http://` is permitted for self-hosted backends; all other URLs must be `https://`.
-
-| Provider | `OPENAI_API_BASE` | Example `MODEL` |
+| Provider | `api_base` | Example `MODEL` |
 | --- | --- | --- |
+| Cloudflare Workers AI | `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
 | Mistral (Devstral) | `https://api.mistral.ai/v1` | `devstral-small-2505` |
 | Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
 | Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
@@ -115,31 +115,40 @@ Set `OPENAI_API_BASE` to point at any OpenAI-compatible Chat Completions endpoin
 <details>
 <summary>Caller workflow examples</summary>
 
+Cloudflare Workers AI (free tier — 10,000 Neurons/day):
+
+```yaml
+with:
+  llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
+  MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+  api_base: https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
+```
+
 Mistral Devstral (cloud):
 
 ```yaml
 with:
-  AI_TOKEN: ${{ secrets.MISTRAL_API_KEY }}
+  llm-api-key: ${{ secrets.MISTRAL_API_KEY }}
   MODEL: devstral-small-2505
-  OPENAI_API_BASE: https://api.mistral.ai/v1
+  api_base: https://api.mistral.ai/v1
 ```
 
 Cerebras (fast inference):
 
 ```yaml
 with:
-  AI_TOKEN: ${{ secrets.CEREBRAS_API_KEY }}
+  llm-api-key: ${{ secrets.CEREBRAS_API_KEY }}
   MODEL: llama-3.3-70b
-  OPENAI_API_BASE: https://api.cerebras.ai/v1
+  api_base: https://api.cerebras.ai/v1
 ```
 
 Self-hosted Ollama:
 
 ```yaml
 with:
-  AI_TOKEN: ollama-no-auth
+  llm-api-key: ollama-no-auth
   MODEL: devstral-small-2
-  OPENAI_API_BASE: http://localhost:11434/v1
+  api_base: http://localhost:11434/v1
 ```
 
 </details>

@@ -59,7 +59,7 @@ def test_call_github_models_success(mock_urlopen):
     mock_urlopen.return_value = _mock_urlopen_response(response_body)
 
     # Act
-    with patch.dict("os.environ", {"AI_TOKEN": "test-token"}, clear=False):
+    with patch.dict("os.environ", {"LLM_API_KEY": "test-token"}, clear=False):
         result = _call_github_models("system", "user")
 
     # Assert
@@ -111,7 +111,7 @@ def test_request_with_retry_raises_after_max(mock_urlopen, mock_sleep):
         _request_with_retry("https://example.com", b"{}", {}, _parse_github_models)
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm._call_github_models", return_value="github response")
 def test_call_llm_uses_github_models_by_default(mock_gh):
@@ -124,7 +124,7 @@ def test_call_llm_uses_github_models_by_default(mock_gh):
     mock_gh.assert_called_once_with("sys", "usr")
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
 @patch("src.llm._call_anthropic", return_value="anthropic response")
 def test_call_llm_uses_anthropic_when_key_set(mock_ant):
@@ -137,11 +137,11 @@ def test_call_llm_uses_anthropic_when_key_set(mock_ant):
     mock_ant.assert_called_once_with("sys", "usr")
 
 
-@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
 @patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
 @patch("src.llm._call_openai_compat", return_value="openai-compat response")
 def test_call_llm_prefers_openai_compat_when_base_set(mock_oc):
-    """OPENAI_API_BASE takes precedence over ANTHROPIC_API_KEY."""
+    """API_BASE takes precedence over ANTHROPIC_API_KEY."""
     # Act
     result = call_llm("sys", "usr")
 
@@ -151,7 +151,7 @@ def test_call_llm_prefers_openai_compat_when_base_set(mock_oc):
 
 
 @patch("src.llm.urllib.request.urlopen")
-@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
 def test_call_openai_compat_https_success(mock_urlopen):
     """OpenAI-compatible cloud endpoint returns parsed content."""
     # Arrange
@@ -159,7 +159,7 @@ def test_call_openai_compat_https_success(mock_urlopen):
     mock_urlopen.return_value = _mock_urlopen_response(response_body)
 
     # Act
-    with patch.dict("os.environ", {"AI_TOKEN": "mistral-key"}, clear=False):
+    with patch.dict("os.environ", {"LLM_API_KEY": "mistral-key"}, clear=False):
         result = _call_openai_compat("system", "user")
 
     # Assert
@@ -170,7 +170,7 @@ def test_call_openai_compat_https_success(mock_urlopen):
 
 
 @patch("src.llm.urllib.request.urlopen")
-@patch("src.llm.OPENAI_API_BASE", "http://localhost:11434/v1/")  # trailing slash, http
+@patch("src.llm.API_BASE", "http://localhost:11434/v1/")  # trailing slash, http
 def test_call_openai_compat_local_http_allowed(mock_urlopen):
     """Localhost http is permitted for self-hosted backends (Ollama)."""
     # Arrange
@@ -208,7 +208,7 @@ def _make_http_error(code: int, url: str = _GH_MODELS_URL) -> urllib.error.HTTPE
     )
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_missing_models_perm_on_401(mock_urlopen):
@@ -226,7 +226,7 @@ def test_call_llm_raises_missing_models_perm_on_401(mock_urlopen):
 # ---------------------------------------------------------------------------
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "sk-test")
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_invalid_anthropic_key_on_401(mock_urlopen):
@@ -244,7 +244,7 @@ def test_call_llm_raises_invalid_anthropic_key_on_401(mock_urlopen):
 # ---------------------------------------------------------------------------
 
 
-@patch("src.llm.OPENAI_API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_invalid_ai_token_on_401(mock_urlopen):
     """OpenAI-compatible 401 → TriageFailureError(class_name='invalid-ai-token', status=401)."""
@@ -262,7 +262,7 @@ def test_call_llm_raises_invalid_ai_token_on_401(mock_urlopen):
 # ---------------------------------------------------------------------------
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_rate_limit_on_429(mock_urlopen):
@@ -280,7 +280,7 @@ def test_call_llm_raises_rate_limit_on_429(mock_urlopen):
 # ---------------------------------------------------------------------------
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm.urllib.request.urlopen")
 @pytest.mark.parametrize("code", [500, 502, 503])
@@ -299,7 +299,7 @@ def test_call_llm_raises_upstream_on_5xx(mock_urlopen, code):
 # ---------------------------------------------------------------------------
 
 
-@patch("src.llm.OPENAI_API_BASE", "")
+@patch("src.llm.API_BASE", "")
 @patch("src.llm.ANTHROPIC_API_KEY", "")
 @patch("src.llm.urllib.request.urlopen")
 def test_call_llm_raises_network_on_urlerror(mock_urlopen):
@@ -310,3 +310,121 @@ def test_call_llm_raises_network_on_urlerror(mock_urlopen):
     err = exc_info.value
     assert err.failure.class_name == "llm-network"
     assert err.failure.status is None
+
+
+# ---------------------------------------------------------------------------
+# C8: GitHub Models 410 Gone (retired endpoint, #109) → github-models-retired
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.API_BASE", "")
+@patch("src.llm.ANTHROPIC_API_KEY", "")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_github_models_retired_on_410(mock_urlopen):
+    """GitHub Models 410 → TriageFailureError(class_name='github-models-retired', status=410)."""
+    mock_urlopen.side_effect = _make_http_error(410)
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "github-models-retired"
+    assert err.failure.status == 410
+    assert mock_urlopen.call_count == 1  # not retried
+
+
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_provider_endpoint_gone_on_410_openai_compat(mock_urlopen):
+    """OpenAI-compatible 410 → TriageFailureError(class_name='provider-endpoint-gone')."""
+    mock_urlopen.side_effect = _make_http_error(
+        410, url="https://api.mistral.ai/v1/chat/completions"
+    )
+    with pytest.raises(TriageFailureError) as exc_info:
+        call_llm("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "provider-endpoint-gone"
+    assert err.failure.status == 410
+    assert mock_urlopen.call_count == 1  # not retried
+
+
+# ---------------------------------------------------------------------------
+# C9: Malformed response body (empty/non-JSON/missing `choices`) → llm-bad-response
+# ---------------------------------------------------------------------------
+
+
+def _mock_urlopen_raw_response(raw: bytes, status: int = 200):
+    """Create a mock urlopen response returning an arbitrary raw body."""
+    mock_resp = MagicMock()
+    mock_resp.status = status
+    mock_resp.read.return_value = raw
+    mock_resp.__enter__ = lambda s: s
+    mock_resp.__exit__ = MagicMock(return_value=False)
+    return mock_resp
+
+
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_bad_response_on_empty_body(mock_urlopen):
+    """Empty response body → TriageFailureError(class_name='llm-bad-response'), not retried."""
+    mock_urlopen.return_value = _mock_urlopen_raw_response(b"")
+    with (
+        pytest.raises(TriageFailureError) as exc_info,
+        patch.dict("os.environ", {"LLM_API_KEY": "mistral-key"}, clear=False),
+    ):
+        _call_openai_compat("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-bad-response"
+    assert err.failure.status == 200
+    assert "api.mistral.ai" in err.failure.summary
+    assert mock_urlopen.call_count == 1  # not retried
+
+
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_bad_response_on_non_json_body(mock_urlopen):
+    """Non-JSON response body → TriageFailureError(class_name='llm-bad-response')."""
+    mock_urlopen.return_value = _mock_urlopen_raw_response(b"<html>502 Bad Gateway</html>")
+    with (
+        pytest.raises(TriageFailureError) as exc_info,
+        patch.dict("os.environ", {"LLM_API_KEY": "mistral-key"}, clear=False),
+    ):
+        _call_openai_compat("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-bad-response"
+    assert mock_urlopen.call_count == 1  # not retried
+
+
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_call_llm_raises_bad_response_on_missing_choices(mock_urlopen):
+    """Valid JSON missing the expected `choices` field → TriageFailureError('llm-bad-response')."""
+    mock_urlopen.return_value = _mock_urlopen_response({"error": "unsupported model"})
+    with (
+        pytest.raises(TriageFailureError) as exc_info,
+        patch.dict("os.environ", {"LLM_API_KEY": "mistral-key"}, clear=False),
+    ):
+        _call_openai_compat("sys", "usr")
+    err = exc_info.value
+    assert err.failure.class_name == "llm-bad-response"
+    assert mock_urlopen.call_count == 1  # not retried
+
+
+# ---------------------------------------------------------------------------
+# C10: fix_markdown / summary never leak the bearer token
+# ---------------------------------------------------------------------------
+
+
+@patch("src.llm.API_BASE", "https://api.mistral.ai/v1")
+@patch("src.llm.urllib.request.urlopen")
+def test_failure_text_never_contains_the_bearer_token(mock_urlopen):
+    """TriageFailure.summary / fix_markdown never echo the llm-api-key value."""
+    mock_urlopen.side_effect = _make_http_error(
+        401, url="https://api.mistral.ai/v1/chat/completions"
+    )
+    with (
+        pytest.raises(TriageFailureError) as exc_info,
+        patch.dict("os.environ", {"LLM_API_KEY": "sk-should-never-leak"}, clear=False),
+    ):
+        _call_openai_compat("sys", "usr")
+    err = exc_info.value
+    assert "sk-should-never-leak" not in err.failure.summary
+    assert "sk-should-never-leak" not in err.failure.fix_markdown

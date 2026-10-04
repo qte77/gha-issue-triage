@@ -7,20 +7,26 @@ branding:
   color: "purple"
 inputs:
   GH_TOKEN:
-    description: "GitHub token for gh CLI."
+    description: "GitHub token for gh CLI (issue/label API calls). Never used as the LLM bearer."
     required: true
-  AI_TOKEN:
-    description: "Token for the LLM backend. For GitHub Models (default), the caller workflow's github.token works when permissions: models: read is set. For Anthropic / OpenAI-compatible backends, pass the provider API key."
-    default: ${{ github.token }}
+  api_base:
+    description: "Base URL of an OpenAI-compatible Chat Completions endpoint (Cloudflare Workers AI, Mistral, Cerebras, Ollama, vLLM, ...); the action appends /chat/completions. Takes precedence over ANTHROPIC_API_KEY and the retired GitHub Models default when set. llm-api-key is sent as Bearer; MODEL selects the model."
+    default: ""
+  llm-api-key:
+    description: "Bearer token for the LLM backend selected by api_base (or GitHub Models when api_base is unset). Falls back to the deprecated AI_TOKEN input, then github.token, for backward compatibility. Never used for gh CLI calls -- use GH_TOKEN for that."
+    default: ""
   MODEL:
-    description: "LLM model for GitHub Models API."
+    description: "LLM model ID. Default is a GitHub Models catalog ID (retired backend); set to a provider-specific model ID when api_base is set, e.g. @cf/meta/llama-3.3-70b-instruct-fp8-fast for Cloudflare Workers AI."
     default: "openai/gpt-4.1"
   ANTHROPIC_API_KEY:
-    description: "Anthropic API key (alternative LLM backend)."
+    description: "Anthropic API key (native Messages API backend)."
     default: ""
   OPENAI_API_BASE:
-    description: "Base URL for an OpenAI-compatible Chat Completions endpoint (Mistral, Ollama, vLLM, ...). When set, takes precedence over Anthropic and GitHub Models. AI_TOKEN is sent as Bearer; MODEL selects the model."
+    description: "Deprecated alias for api_base. Prefer api_base."
     default: ""
+  AI_TOKEN:
+    description: "Deprecated alias for llm-api-key. Prefer llm-api-key. Default (github.token) is only valid for the retired GitHub Models backend."
+    default: ${{ github.token }}
   MAX_DUPLICATES:
     description: "Max duplicate candidates to check."
     default: "10"
@@ -49,10 +55,12 @@ runs:
       # injection when an input value contains shell metacharacters.
       env:
         GH_TOKEN: ${{ inputs.GH_TOKEN }}
-        AI_TOKEN: ${{ inputs.AI_TOKEN }}
+        # api_base / llm-api-key are the canonical names; OPENAI_API_BASE /
+        # AI_TOKEN are deprecated aliases kept for backward compatibility.
+        API_BASE: ${{ inputs.api_base || inputs.OPENAI_API_BASE }}
+        LLM_API_KEY: ${{ inputs.llm-api-key || inputs.AI_TOKEN }}
         MODEL: ${{ inputs.MODEL }}
         ANTHROPIC_API_KEY: ${{ inputs.ANTHROPIC_API_KEY }}
-        OPENAI_API_BASE: ${{ inputs.OPENAI_API_BASE }}
         MAX_DUPLICATES: ${{ inputs.MAX_DUPLICATES }}
         SIMILARITY_THRESHOLD: ${{ inputs.SIMILARITY_THRESHOLD }}
         PYTHONPATH: ${{ github.action_path }}/src

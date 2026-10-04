@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `api_base` + `llm-api-key` inputs — canonical names for the OpenAI-compatible backend wiring (Cloudflare Workers AI, Mistral, Cerebras, Ollama, ...). `OPENAI_API_BASE` / `AI_TOKEN` remain as deprecated aliases, resolved by `action.yaml` for backward compatibility (#109, #110)
+- `TriageFailure` classes `github-models-retired` and `provider-endpoint-gone` for HTTP 410 Gone responses — previously unhandled, crashing with a raw traceback (#109)
+- `TriageFailure` class `llm-bad-response` for an empty, non-JSON, or malformed-shape LLM response body — names the host + HTTP status, never the bearer token (#110)
+- `docs/integrations.md` Cloudflare Workers AI caller example + cost row; `docs/architecture.md` boundary row for response-body decoding
+
+### Changed
+
+- `src/llm.py` internal env vars renamed `OPENAI_API_BASE` → `API_BASE`, `AI_TOKEN` → `LLM_API_KEY` (resolved by `action.yaml`; the public `OPENAI_API_BASE`/`AI_TOKEN` inputs still work as deprecated aliases)
+- `docs/integrations.md` / `README.md`: GitHub Models (Path 0) marked retired 2026-07-30 and no longer recommended; Path B (OpenAI-compatible) promoted to the primary path, with Cloudflare Workers AI as the recommended default
+
 ---
 
 ## [0.3.0] - 2026-05-22

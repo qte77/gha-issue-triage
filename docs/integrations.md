@@ -40,7 +40,7 @@ GitHub Models has no public per-model pricing — paid tier is "opt into paid us
 
 ## Auth for `llm-api-key` (GitHub Models specifically, retired)
 
-The action's `llm-api-key` input (deprecated alias: `AI_TOKEN`) defaults to `${{ github.token }}`. Combined with `permissions: models: read` on the caller workflow, that was sufficient for the GitHub Models inference endpoint while it existed — **no separate PAT or org-level setup was required**. This repo's own [`self-triage.yml`](../.github/workflows/self-triage.yml) still shows the pattern, though the backend it targets now returns HTTP 410 (`github-models-retired`, see [Troubleshooting](#troubleshooting)) until it is updated to Path B.
+The action's `llm-api-key` input (deprecated alias: `AI_TOKEN`) defaults to `${{ github.token }}`. Combined with `permissions: models: read` on the caller workflow, that was sufficient for the GitHub Models inference endpoint while it existed — **no separate PAT or org-level setup was required**. This repo's own [`self-triage.yml`](../.github/workflows/self-triage.yml) has since been migrated to Path B (Cloudflare Workers AI via `api_base` + `llm-api-key`); it no longer uses this GitHub Models pattern.
 
 Three valid token shapes for GitHub Models, in increasing setup cost:
 

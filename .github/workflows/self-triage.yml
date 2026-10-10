@@ -13,7 +13,6 @@ on:
 
 permissions:
   issues: write
-  models: read
   contents: read
 
 jobs:
@@ -23,9 +22,9 @@ jobs:
       - uses: qte77/gha-issue-triage@1bf71f215a70a9b19f228e1c190aaf578baa6a59  # v0.4.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # llm-api-key / api_base omitted → action falls back to the
-          # retired GitHub Models default, which now returns HTTP 410 on
-          # every call (posts a `github-models-retired` failure comment).
-          # This repo has no LLM provider secret configured yet; tracked
-          # as a known follow-up rather than fixed here. See
-          # docs/integrations.md Path B for the migration.
+          # Path B (OpenAI-compatible) via Cloudflare Workers AI. Requires
+          # repo secret CF_WORKERS_AI_TOKEN (owner must set it); variable
+          # LLM_BASE_URL is already configured as of 2026-10-10.
+          llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
+          api_base: ${{ vars.LLM_BASE_URL }}
+          MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `self-triage.yml`: migrated from the retired GitHub Models default to Path B (Cloudflare Workers AI) — `api_base` + `llm-api-key` + `MODEL` inputs, `models: read` permission dropped. Requires repo secret `CF_WORKERS_AI_TOKEN` (owner-provisioned); `docs/integrations.md` updated to reflect the migration
+
 ---
 
 ## [0.4.0] - 2026-10-04

@@ -75,7 +75,7 @@ Cloudflare Workers AI (recommended default — generous free tier, verified 2026
 with:
   llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
   MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-  api_base: ${{ vars.LLM_BASE_URL }}  # https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
+  api_base: ${{ secrets.LLM_BASE_URL }}  # https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
 ```
 
 Mistral Devstral (cloud):

@@ -23,8 +23,8 @@ jobs:
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Path B (OpenAI-compatible) via Cloudflare Workers AI. Requires
-          # repo secret CF_WORKERS_AI_TOKEN (owner must set it); variable
-          # LLM_BASE_URL is already configured as of 2026-10-10.
+          # repo secrets CF_WORKERS_AI_TOKEN and LLM_BASE_URL (a secret keeps
+          # the account id in the URL out of logs).
           llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
-          api_base: ${{ vars.LLM_BASE_URL }}
+          api_base: ${{ secrets.LLM_BASE_URL }}
           MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"

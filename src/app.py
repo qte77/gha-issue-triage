@@ -2,8 +2,8 @@
 
 import json
 import sys
-from os import getenv
 
+import config
 from comment import post_failure, post_summary
 from duplicates import find_duplicates
 from errors import TriageFailureError
@@ -14,8 +14,8 @@ from relevance import score_relevance
 
 def main() -> None:
     """Read GitHub event payload and dispatch to triage pipeline."""
-    event_name = getenv("GITHUB_EVENT_NAME", "")
-    event_path = getenv("GITHUB_EVENT_PATH", "")
+    event_name = config.settings.github_event_name
+    event_path = config.settings.github_event_path
 
     if event_name != "issues":
         print(f"Skipping non-issue event: {event_name}")

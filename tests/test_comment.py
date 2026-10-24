@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config import AppSettings
 from errors import TriageFailureError
 from src.comment import MARKER, post_failure, post_summary
 from src.errors import TriageFailure
@@ -47,7 +48,7 @@ def _fail(stderr: str = "boom") -> MagicMock:
     return m
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_creates_new_when_no_marker(mock_run):
     """No existing marker comment → posts a new one via gh issue comment."""
@@ -72,7 +73,7 @@ def test_post_summary_creates_new_when_no_marker(mock_run):
     assert f"(~{FEASIBILITY['estimated_effort']})" in body
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_updates_existing_marker_comment(mock_run):
     """Existing marker comment → PATCHes that comment, no new create call."""
@@ -97,7 +98,7 @@ def test_post_summary_updates_existing_marker_comment(mock_run):
     )
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_returns_false_on_create_failure(mock_run, capsys):
     """Create-comment failure → returns False and prints a warning, never raises."""
@@ -112,7 +113,7 @@ def test_post_summary_returns_false_on_create_failure(mock_run, capsys):
     assert "::warning::Failed to create summary comment" in capsys.readouterr().out
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_omits_optional_fields_cleanly(mock_run):
     """Empty reasoning/effort produce a clean body — no trailing ' — ' or '(~)'."""
@@ -139,7 +140,7 @@ def test_post_summary_omits_optional_fields_cleanly(mock_run):
     assert " — \n" not in body
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
     """When feasibility=no, render Feasibility with reasoning, omit Complexity line."""
@@ -163,7 +164,7 @@ def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
     assert "(~weeks)" not in body
 
 
-@patch.dict("os.environ", {}, clear=True)
+@patch("config.settings", AppSettings(github_repository=""))
 @patch("src.comment.subprocess.run")
 def test_post_summary_skips_when_repo_env_missing(mock_run, capsys):
     """No GITHUB_REPOSITORY set → no subprocess calls; warn and return False."""
@@ -181,7 +182,7 @@ def test_post_summary_skips_when_repo_env_missing(mock_run, capsys):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_failure_body_format(mock_run):
     """post_failure body contains MARKER, summary, and fix_markdown."""
@@ -204,7 +205,7 @@ def test_post_failure_body_format(mock_run):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment._create_comment")
 @patch("src.comment._find_existing_comment_id")
 def test_post_failure_creates_new_when_no_marker(mock_find, mock_create):
@@ -225,7 +226,7 @@ def test_post_failure_creates_new_when_no_marker(mock_find, mock_create):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment._update_comment")
 @patch("src.comment._find_existing_comment_id")
 def test_post_failure_updates_existing_marker(mock_find, mock_update):
@@ -246,7 +247,7 @@ def test_post_failure_updates_existing_marker(mock_find, mock_update):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_overwrites_post_failure_via_marker(mock_run):
     """post_summary after post_failure updates the same comment (single marker)."""
@@ -278,7 +279,7 @@ def test_post_summary_overwrites_post_failure_via_marker(mock_run):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_raises_missing_issues_write(mock_run, capsys):
     """_create_comment gh 403 → TriageFailureError(class_name='missing-issues-write')."""

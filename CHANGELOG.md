@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Labels the bot creates get a default description (`labels.LABEL_DESCRIPTIONS`); existing labels with an empty description are backfilled on the next run, and a description already set is never overwritten. `gh label create --force` is no longer used, so existing labels are only touched to backfill an empty description (#93)
+
 ### Changed
 
 - `self-triage.yml`: migrated from the retired GitHub Models default to Path B (Cloudflare Workers AI) — `api_base` + `llm-api-key` + `MODEL` inputs, `models: read` permission dropped. Requires repo secret `CF_WORKERS_AI_TOKEN` (owner-provisioned); `docs/integrations.md` updated to reflect the migration

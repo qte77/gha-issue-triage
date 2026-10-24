@@ -5,18 +5,10 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
-from os import getenv
 from urllib.parse import urlparse
 
+import config
 from errors import TriageFailure, TriageFailureError
-
-# LLM_API_KEY / API_BASE are resolved by action.yaml from the api_base /
-# llm-api-key inputs, falling back to the deprecated OPENAI_API_BASE /
-# AI_TOKEN inputs — this module only ever sees the resolved names.
-LLM_API_KEY = getenv("LLM_API_KEY", "")
-MODEL = getenv("MODEL", "openai/gpt-4.1")
-ANTHROPIC_API_KEY = getenv("ANTHROPIC_API_KEY", "")
-API_BASE = getenv("API_BASE", "")
 
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 2
@@ -111,9 +103,9 @@ def call_llm(system_prompt: str, user_prompt: str) -> str:
     (if ANTHROPIC_API_KEY set) → GitHub Models (default, retired — see
     `docs/integrations.md#path-b--openai-compatible-backend`).
     """
-    if API_BASE:
+    if config.settings.api_base:
         return _call_openai_compat(system_prompt, user_prompt)
-    if ANTHROPIC_API_KEY:
+    if config.settings.anthropic_api_key:
         return _call_anthropic(system_prompt, user_prompt)
     return _call_github_models(system_prompt, user_prompt)
 
@@ -123,7 +115,7 @@ def _call_github_models(system_prompt: str, user_prompt: str) -> str:
     url = "https://models.github.ai/inference/chat/completions"
     payload = json.dumps(
         {
-            "model": MODEL,
+            "model": config.settings.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -135,7 +127,7 @@ def _call_github_models(system_prompt: str, user_prompt: str) -> str:
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {config.settings.llm_api_key}",
     }
 
     try:
@@ -156,11 +148,12 @@ def _call_github_models(system_prompt: str, user_prompt: str) -> str:
 
 def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
     """Call an OpenAI-compatible Chat Completions endpoint (Cloudflare Workers AI, Mistral, ...)."""
-    url = f"{API_BASE.rstrip('/')}/chat/completions"
-    host = urlparse(API_BASE).hostname or API_BASE
+    api_base = config.settings.api_base
+    url = f"{api_base.rstrip('/')}/chat/completions"
+    host = urlparse(api_base).hostname or api_base
     payload = json.dumps(
         {
-            "model": MODEL,
+            "model": config.settings.model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
@@ -172,7 +165,7 @@ def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {LLM_API_KEY}",
+        "Authorization": f"Bearer {config.settings.llm_api_key}",
     }
 
     try:
@@ -204,7 +197,7 @@ def _call_anthropic(system_prompt: str, user_prompt: str) -> str:
 
     headers = {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
+        "x-api-key": config.settings.anthropic_api_key,
         "anthropic-version": "2023-06-01",
     }
 

@@ -3,8 +3,8 @@
 import json
 import subprocess
 from difflib import SequenceMatcher
-from os import getenv
 
+import config
 from _gh_errors import raise_or_degrade_gh_error
 
 
@@ -15,8 +15,8 @@ def find_duplicates(title: str, body: str, issue_number: int | None = None) -> l
     When issue_number is provided, the issue with that number is excluded from the
     candidate pool to avoid self-matching during triage.
     """
-    max_duplicates = int(getenv("MAX_DUPLICATES", "10"))
-    threshold = float(getenv("SIMILARITY_THRESHOLD", "0.6"))
+    max_duplicates = config.settings.max_duplicates
+    threshold = config.settings.similarity_threshold
 
     existing = _fetch_existing_issues()
     scored = []

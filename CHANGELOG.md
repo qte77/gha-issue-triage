@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Labels the bot creates get a default description (`labels.LABEL_DESCRIPTIONS`); existing labels with an empty description are backfilled on the next run, and a description already set is never overwritten. `gh label create --force` is no longer used, so existing labels are only touched to backfill an empty description (#93)
+
 ### Changed
 
+- Env-var config centralized in `src/config.py` (`AppSettings`, a frozen `pydantic-settings` singleton): all `getenv()` callsites now read typed `config.settings.<field>`, so `MAX_DUPLICATES` / `SIMILARITY_THRESHOLD` no longer need manual `int()` / `float()`. Adds `pydantic-settings` as the action's first runtime dependency (#80)
 - `self-triage.yml`: migrated from the retired GitHub Models default to Path B (Cloudflare Workers AI) — `api_base` + `llm-api-key` + `MODEL` inputs, `models: read` permission dropped. Requires repo secret `CF_WORKERS_AI_TOKEN` (owner-provisioned); `docs/integrations.md` updated to reflect the migration
 - `self-triage.yml`, README and `docs/integrations.md` examples: `api_base` now reads `secrets.LLM_BASE_URL` instead of `vars.LLM_BASE_URL`, so the Cloudflare account id in the URL stays out of logs
 - `README.md` restructured to the qte77 README canon (Hero → Badges → What → How → Why → Refs → License); badges reordered License → Version → CI with a linked blue Version badge (bump-my-version search string updated to match). The Inputs table, provider table and sample summary comment moved to `docs/integrations.md`; duplicated model/backend sections removed from the README. Dead GitHub Models catalog link dropped (#98)

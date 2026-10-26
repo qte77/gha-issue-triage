@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Labels the bot creates get a default description (`labels.LABEL_DESCRIPTIONS`); existing labels with an empty description are backfilled on the next run, and a description already set is never overwritten. `gh label create --force` is no longer used, so existing labels are only touched to backfill an empty description (#93)
+
 ### Changed
 
 - Env-var config centralized in `src/config.py` (`AppSettings`, a frozen `pydantic-settings` singleton): all `getenv()` callsites now read typed `config.settings.<field>`, so `MAX_DUPLICATES` / `SIMILARITY_THRESHOLD` no longer need manual `int()` / `float()`. Adds `pydantic-settings` as the action's first runtime dependency (#80)

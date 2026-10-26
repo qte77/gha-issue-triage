@@ -20,6 +20,8 @@ class AppSettings(BaseSettings):
     model: str = "openai/gpt-4.1"
     anthropic_api_key: str = ""
     api_base: str = ""
+    # GH_TOKEN (gh CLI only) — read so the LLM path can refuse to send it to an LLM host.
+    gh_token: str = ""
 
     # Duplicate detection
     max_duplicates: int = 10

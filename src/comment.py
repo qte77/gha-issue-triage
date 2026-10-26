@@ -2,8 +2,8 @@
 
 import json
 import subprocess
-from os import getenv
 
+import config
 from _gh_errors import raise_or_degrade_gh_error
 from errors import TriageFailure
 
@@ -18,7 +18,7 @@ def post_failure(issue_number: int, failure: TriageFailure) -> bool:
     Returns True on success, False on subprocess failure.
     """
     body = f"{MARKER}\n### Triage failure\n\n{failure.summary}\n\n{failure.fix_markdown}"
-    repo = getenv("GITHUB_REPOSITORY", "")
+    repo = config.settings.github_repository
     if not repo:
         print("::warning::GITHUB_REPOSITORY not set; skipping failure comment")
         return False
@@ -43,7 +43,7 @@ def post_summary(
     already succeeded by the time this is called).
     """
     body = _build_body(duplicates, relevance, feasibility)
-    repo = getenv("GITHUB_REPOSITORY", "")
+    repo = config.settings.github_repository
     if not repo:
         print("::warning::GITHUB_REPOSITORY not set; skipping summary comment")
         return False

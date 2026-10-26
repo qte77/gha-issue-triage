@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config import AppSettings
 from errors import TriageFailureError
 from src.duplicates import _fetch_existing_issues, find_duplicates
 
@@ -66,7 +67,7 @@ def test_fetch_existing_issues_failure(mock_run):
 def test_find_duplicates_exact_match(mock_fetch):
     """Exact title match scores above threshold."""
     # Act
-    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.6", "MAX_DUPLICATES": "10"}):
+    with patch("config.settings", AppSettings(similarity_threshold=0.6, max_duplicates=10)):
         result = find_duplicates("Fix login bug", "Login fails on Safari")
 
     # Assert
@@ -79,7 +80,7 @@ def test_find_duplicates_exact_match(mock_fetch):
 def test_find_duplicates_no_match(mock_fetch):
     """Unrelated issue returns no duplicates."""
     # Act
-    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.6", "MAX_DUPLICATES": "10"}):
+    with patch("config.settings", AppSettings(similarity_threshold=0.6, max_duplicates=10)):
         result = find_duplicates("Implement GraphQL API", "New API layer for queries")
 
     # Assert
@@ -90,7 +91,7 @@ def test_find_duplicates_no_match(mock_fetch):
 def test_find_duplicates_respects_threshold(mock_fetch):
     """High threshold filters out partial matches."""
     # Act
-    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.99", "MAX_DUPLICATES": "10"}):
+    with patch("config.settings", AppSettings(similarity_threshold=0.99, max_duplicates=10)):
         result = find_duplicates("Fix login issue", "Login is broken")
 
     # Assert
@@ -101,7 +102,7 @@ def test_find_duplicates_respects_threshold(mock_fetch):
 def test_find_duplicates_respects_max(mock_fetch):
     """MAX_DUPLICATES limits results."""
     # Act
-    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.0", "MAX_DUPLICATES": "2"}):
+    with patch("config.settings", AppSettings(similarity_threshold=0.0, max_duplicates=2)):
         result = find_duplicates("anything", "anything")
 
     # Assert
@@ -112,7 +113,7 @@ def test_find_duplicates_respects_max(mock_fetch):
 def test_find_duplicates_excludes_self(mock_fetch):
     """Passing issue_number excludes that issue from the candidate pool."""
     # Act
-    with patch.dict("os.environ", {"SIMILARITY_THRESHOLD": "0.6", "MAX_DUPLICATES": "10"}):
+    with patch("config.settings", AppSettings(similarity_threshold=0.6, max_duplicates=10)):
         result = find_duplicates("Fix login bug", "Login fails on Safari", issue_number=1)
 
     # Assert

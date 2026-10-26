@@ -5,6 +5,22 @@ Two paths for users of `gha-issue-triage`.
 - **Path 0** — Stay on GitHub Models, switch to a smaller/faster model via the existing `MODEL` input. **GitHub Models was retired 2026-07-30 ([changelog][gh-models-retired-changelog]) — this path no longer works.** Kept documented only so the historical default is explained; move to Path B.
 - **Path B** — OpenAI-compatible backend (Cloudflare Workers AI / Mistral / Cerebras / Ollama / vLLM). **New `api_base` + `llm-api-key` inputs, no code change for callers.**
 
+## Inputs
+
+Source of truth: [`action.yaml`](../action.yaml).
+
+| Name | Required | Default | Description |
+| --- | --- | --- | --- |
+| `GH_TOKEN` | Yes | — | GitHub token for gh CLI (issue/label API calls) |
+| `api_base` | No | — | Base URL of an OpenAI-compatible endpoint (Cloudflare Workers AI/Mistral/Cerebras/Ollama/vLLM); takes precedence when set |
+| `llm-api-key` | No | — | Bearer token for the LLM backend. Falls back to the deprecated `AI_TOKEN` input, then `github.token` |
+| `MODEL` | No | `openai/gpt-4.1` | LLM model. GitHub Models default is **retired** — set a provider-specific ID when `api_base` is set |
+| `ANTHROPIC_API_KEY` | No | — | Anthropic API key (native Messages API backend) |
+| `OPENAI_API_BASE` | No | — | **Deprecated** — alias for `api_base` |
+| `AI_TOKEN` | No | `github.token` | **Deprecated** — alias for `llm-api-key` |
+| `MAX_DUPLICATES` | No | `10` | Max duplicate candidates |
+| `SIMILARITY_THRESHOLD` | No | `0.6` | Fuzzy match threshold (0-1) |
+
 ## Current Wiring (Reference)
 
 From [`src/llm.py`](../src/llm.py): three backends, dispatched in this order — OpenAI-compatible (`api_base` set) → Anthropic (`ANTHROPIC_API_KEY` set) → GitHub Models (default, retired). `ANTHROPIC_API_KEY` flips to Anthropic with model **hardcoded** at `claude-sonnet-4-6` (`src/llm.py:198`) — `MODEL` input only affects GitHub Models and OpenAI-compatible backends. `api_base` / `llm-api-key` are the canonical inputs; `OPENAI_API_BASE` / `AI_TOKEN` are deprecated aliases resolved by `action.yaml` for backward compatibility.
@@ -13,7 +29,7 @@ From [`src/llm.py`](../src/llm.py): three backends, dispatched in this order —
 
 The action's `MODEL` default `openai/gpt-4.1` worked but is one of dozens. Issue triage (~5K in / ~500 out, no long context) is a small/fast model task. GitHub Models exposed the same Chat-Completions endpoint for every model, so swapping was a one-line change — **this entire backend now returns HTTP 410 Gone and cannot be used; switch to Path B.**
 
-Notable IDs available on GitHub Models ([catalog reference][gh-models-cat]):
+Notable IDs that were available on GitHub Models (the catalog page at `github.com/marketplace/models` returns 404 since the retirement):
 
 | Model ID | Provider | Why for triage |
 | --- | --- | --- |
@@ -66,6 +82,15 @@ This path is **no longer usable** — GitHub Models is retired. Migrate to Path 
 Shipped in [#11](https://github.com/qte77/gha-issue-triage/issues/11) (action ≥0.2.0); `api_base` + `llm-api-key` became the canonical input names in ≥0.4.0 (`OPENAI_API_BASE` / `AI_TOKEN` are deprecated aliases, still accepted). Any OpenAI-compatible Chat Completions endpoint plugs in via `api_base` — Cloudflare Workers AI, Mistral, Cerebras, Groq, Together, Fireworks, vLLM, Ollama. `llm-api-key` is sent as a Bearer; `MODEL` selects the model. Localhost `http://` is allowed for self-hosted; all other URLs must be `https://`.
 
 References: [Cloudflare Workers AI OpenAI compatibility][cf-workers-ai-openai], [Devstral Small 2][devstral-card], [Mistral API docs][mistral-api].
+
+| Provider | `api_base` | Example `MODEL` |
+| --- | --- | --- |
+| Cloudflare Workers AI | `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
+| Mistral (Devstral) | `https://api.mistral.ai/v1` | `devstral-small-2505` |
+| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Together | `https://api.together.xyz/v1` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Ollama (self-hosted) | `http://localhost:11434/v1` | `devstral-small-2` |
 
 ### Caller workflows
 
@@ -130,6 +155,28 @@ Path 0 (GitHub Models) is omitted — it is retired and no longer a viable optio
 ## Suggested Follow-Ups
 
 1. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
+
+## Summary comment format
+
+This repo dogfoods the action via [`self-triage.yml`](../.github/workflows/self-triage.yml), so
+every new or edited issue here shows a live example. The sticky comment looks like:
+
+```md
+### AI triage summary
+
+- **Duplicate of:** #30 (similarity 0.93)
+- **Relevance:** 2/10 — `invalid` — The issue proposes an unrealistic feature unrelated to the repository's scope.
+- **Feasibility:** `no` — Faster-than-light travel violates known physics.
+```
+
+When `feasibility` is `yes` the comment also shows a `Complexity:` line:
+
+```md
+- **Feasibility:** `yes`
+- **Complexity:** `medium` — Requires extending the event-handler and adding tests. (~days)
+```
+
+The duplicate line is omitted when no duplicate is found.
 
 ## Troubleshooting
 
@@ -221,6 +268,7 @@ PRs, use `pull_request_target` instead of `pull_request` — but read the
 ### `not-found` — HTTP 404 from any `gh` call
 
 The action could not reach the issue or repository. Common causes:
+
 - `GH_TOKEN` scope is too narrow (private repos require the `repo` scope)
 - The issue number or repository slug in the event payload is incorrect
 
@@ -233,7 +281,6 @@ resets (typically within an hour). For high-volume repositories, supply a
 PAT via `GH_TOKEN` — authenticated requests use a higher per-user quota than
 the default `GITHUB_TOKEN` (`github-actions[bot]`).
 
-[gh-models-cat]: https://github.com/marketplace/models
 [gh-models-docs]: https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models
 [gh-models-retired-changelog]: https://github.blog/changelog/2026-07-30-github-models-is-now-retired/
 [cf-workers-ai-openai]: https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/

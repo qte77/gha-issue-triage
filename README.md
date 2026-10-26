@@ -5,7 +5,7 @@ analyzes feasibility, auto-labels, and posts a sticky summary comment with the
 analysis (edited in place on re-runs).
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE)
-[![Version](https://img.shields.io/badge/Version-0.4.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.5.0-blue)](CHANGELOG.md)
 [![CodeQL](https://github.com/qte77/gha-issue-triage/actions/workflows/codeql.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/codeql.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/qte77/gha-issue-triage/badge)](https://www.codefactor.io/repository/github/qte77/gha-issue-triage)
 [![Tests](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml/badge.svg)](https://github.com/qte77/gha-issue-triage/actions/workflows/test.yml)
@@ -45,7 +45,7 @@ jobs:
       issues: write
       contents: read
     steps:
-      - uses: qte77/gha-issue-triage@1bf71f215a70a9b19f228e1c190aaf578baa6a59  # v0.4.0
+      - uses: qte77/gha-issue-triage@f7254d606bd002343b73190706b46f43b645f912  # v0.5.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}

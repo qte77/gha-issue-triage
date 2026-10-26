@@ -67,8 +67,9 @@ def test_post_summary_creates_new_when_no_marker(mock_run):
     body = cmd[cmd.index("--body") + 1]
     assert MARKER in body
     assert "#5" in body
-    assert RELEVANCE["reasoning"] in body
-    assert FEASIBILITY["reasoning"] in body
+    # Model free text never reaches the public comment (#122).
+    assert RELEVANCE["reasoning"] not in body
+    assert FEASIBILITY["reasoning"] not in body
     # Regression: the feasibility line keeps its closing paren.
     assert f"(~{FEASIBILITY['estimated_effort']})" in body
 
@@ -159,7 +160,8 @@ def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
     # Assert
     assert result is True
     body = mock_run.call_args_list[1].args[0][-1]
-    assert "- **Feasibility:** `no` — Violates known physics." in body
+    assert "- **Feasibility:** `no`\n" in body
+    assert "Violates known physics." not in body
     assert "Complexity" not in body
     assert "(~weeks)" not in body
 
@@ -298,3 +300,23 @@ def test_post_summary_raises_missing_issues_write(mock_run, capsys):
 
     assert exc_info.value.failure.class_name == "missing-issues-write"
     assert exc_info.value.failure.status == 403
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_never_renders_model_free_text(mock_run):
+    """Text an issue can steer the model into writing never appears in the comment (#122)."""
+    # Arrange
+    probe = "## TRIAGE-PROBE @someone **bold**"
+    relevance = {**RELEVANCE, "reasoning": probe}
+    feasibility = {**FEASIBILITY, "reasoning": probe}
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    # Act
+    post_summary(7, [], relevance, feasibility)
+
+    # Assert
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "PROBE" not in body
+    assert "@someone" not in body
+    assert "reopened" in body

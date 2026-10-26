@@ -433,3 +433,20 @@ def test_failure_text_never_contains_the_bearer_token(mock_urlopen):
     err = exc_info.value
     assert "sk-should-never-leak" not in err.failure.summary
     assert "sk-should-never-leak" not in err.failure.fix_markdown
+
+
+@patch("src.llm.urllib.request.urlopen")
+def test_call_openai_compat_refuses_github_token_as_llm_key(mock_urlopen):
+    """The GitHub token is never sent to a third-party LLM host as the bearer (#122)."""
+    same = "ghs_same"
+    with (
+        pytest.raises(TriageFailureError) as exc_info,
+        patch(
+            "config.settings",
+            AppSettings(api_base="https://api.example.com/v1", llm_api_key=same, gh_token=same),
+        ),
+    ):
+        _call_openai_compat("sys", "usr")
+    assert exc_info.value.failure.class_name == "llm-key-is-github-token"
+    assert same not in exc_info.value.failure.summary
+    mock_urlopen.assert_not_called()

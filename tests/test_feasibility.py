@@ -134,3 +134,14 @@ def test_analyze_feasibility_returns_parsed_result(mock_summary, mock_llm):
     assert result["complexity"] == "high"
     assert result["estimated_effort"] == "weeks"
     mock_llm.assert_called_once()
+
+
+def test_parse_response_unknown_enums_fall_back():
+    """complexity / estimated_effort outside their fixed lists fall back to the defaults."""
+    # Act
+    data = {"feasibility": "yes", "complexity": "low ## PROBE", "estimated_effort": "**x**"}
+    result = _parse_response(json.dumps(data))
+
+    # Assert
+    assert result["complexity"] == "medium"
+    assert result["estimated_effort"] == "days"

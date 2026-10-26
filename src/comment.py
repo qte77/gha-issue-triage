@@ -55,7 +55,11 @@ def post_summary(
 
 
 def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> str:
-    """Render the summary markdown body, including the hidden marker."""
+    """Render the summary markdown body, including the hidden marker.
+
+    Only fixed-list values are rendered. The model's free-text `reasoning` is left out:
+    issue text can steer it, and this comment is public (#122).
+    """
     lines = [MARKER, "### AI triage summary", ""]
     if duplicates:
         top = duplicates[0]
@@ -63,30 +67,22 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
 
     score = relevance.get("score", "?")
     category = relevance.get("category", "")
-    rel_reason = relevance.get("reasoning", "")
-    rel_line = f"- **Relevance:** {score}/10 — `{category}`"
-    if rel_reason:
-        rel_line += f" — {rel_reason}"
-    lines.append(rel_line)
+    lines.append(f"- **Relevance:** {score}/10 — `{category}`")
 
     feasible = feasibility.get("feasibility", "yes")
     complexity = feasibility.get("complexity", "")
-    feas_reason = feasibility.get("reasoning", "")
     effort = feasibility.get("estimated_effort", "")
-    feas_line = f"- **Feasibility:** `{feasible}`"
-    if feasible == "no" and feas_reason:
-        feas_line += f" — {feas_reason}"
-    lines.append(feas_line)
+    lines.append(f"- **Feasibility:** `{feasible}`")
     if feasible == "yes":
         cx_line = f"- **Complexity:** `{complexity}`"
-        if feas_reason:
-            cx_line += f" — {feas_reason}"
         if effort:
             cx_line += f" (~{effort})"
         lines.append(cx_line)
 
     lines.append("")
-    lines.append("_Auto-generated. Re-runs when the issue is opened, edited, or labelled._")
+    lines.append(
+        "_Auto-generated. Re-runs when the issue is opened, edited, reopened, or labelled._"
+    )
     return "\n".join(lines)
 
 

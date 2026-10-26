@@ -151,6 +151,17 @@ def _call_openai_compat(system_prompt: str, user_prompt: str) -> str:
     api_base = config.settings.api_base
     url = f"{api_base.rstrip('/')}/chat/completions"
     host = urlparse(api_base).hostname or api_base
+    # Reason: the deprecated AI_TOKEN input defaults to github.token, so an empty llm-api-key
+    # would send the GitHub token to the third-party host as the bearer (#122).
+    if config.settings.gh_token and config.settings.llm_api_key == config.settings.gh_token:
+        raise TriageFailureError(
+            TriageFailure(
+                class_name="llm-key-is-github-token",
+                status=None,
+                summary=f"Refused to send the GitHub token to {host} as the LLM key.",
+                fix_markdown="Set `llm-api-key` to the provider's own key (e.g. a repo secret).",
+            )
+        )
     payload = json.dumps(
         {
             "model": config.settings.model,

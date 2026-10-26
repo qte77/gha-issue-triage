@@ -165,18 +165,20 @@ every new or edited issue here shows a live example. The sticky comment looks li
 ### AI triage summary
 
 - **Duplicate of:** #30 (similarity 0.93)
-- **Relevance:** 2/10 — `invalid` — The issue proposes an unrealistic feature unrelated to the repository's scope.
-- **Feasibility:** `no` — Faster-than-light travel violates known physics.
+- **Relevance:** 2/10 — `invalid`
+- **Feasibility:** `no`
 ```
 
 When `feasibility` is `yes` the comment also shows a `Complexity:` line:
 
 ```md
 - **Feasibility:** `yes`
-- **Complexity:** `medium` — Requires extending the event-handler and adding tests. (~days)
+- **Complexity:** `medium` (~days)
 ```
 
-The duplicate line is omitted when no duplicate is found.
+The duplicate line is omitted when no duplicate is found. Only fixed-list values are shown
+(category, feasibility, complexity, effort); a model value outside its list falls back to the
+default. The model's free-text reasoning is never posted, because issue text can steer it.
 
 ## Troubleshooting
 
@@ -220,6 +222,12 @@ fall back to the GitHub Models backend.
 The Bearer token in `llm-api-key` (or the deprecated `AI_TOKEN`) was rejected
 by the custom `api_base` endpoint. Verify the key is valid for that provider
 and that the endpoint URL is correct.
+
+### `llm-key-is-github-token` — GitHub token would be sent to the LLM host
+
+`api_base` is set but `llm-api-key` is empty, so the deprecated `AI_TOKEN` input fell back to
+`github.token`. The action refuses to send it to a third-party host. Set `llm-api-key` to the
+provider's own key.
 
 ### `llm-bad-response` — empty, non-JSON, or malformed-shape response body
 

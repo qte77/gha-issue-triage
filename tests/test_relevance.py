@@ -83,3 +83,12 @@ def test_score_relevance_returns_parsed_result(mock_llm):
     assert result["score"] == 7
     assert result["category"] == "feature"
     mock_llm.assert_called_once()
+
+
+def test_parse_response_unknown_category_falls_back():
+    """A category outside the fixed list is replaced, so model text never passes through."""
+    # Act
+    result = _parse_response(json.dumps({"score": 8, "category": "## PROBE **x**"}))
+
+    # Assert
+    assert result["category"] == "needs discussion"

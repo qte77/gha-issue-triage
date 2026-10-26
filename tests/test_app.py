@@ -255,3 +255,35 @@ def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_f
     call_args = mock_post_failure.call_args
     assert call_args[0][0] == 42  # issue_number
     assert call_args[0][1].class_name == "llm-rate-limit"
+
+
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_dispatches_reopened_issue(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, tmp_path
+):
+    """Reopened issue is triaged again (consumers subscribe to `reopened`)."""
+    # Arrange
+    settings = _write_event(tmp_path, "issues", "reopened")
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_dup.assert_called_once()
+    mock_post.assert_called_once()

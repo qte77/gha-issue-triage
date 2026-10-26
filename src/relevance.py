@@ -5,6 +5,8 @@ from pathlib import Path
 
 from llm import call_llm
 
+CATEGORIES = ("bug", "documentation", "feature", "enhancement", "needs discussion", "invalid")
+
 
 def score_relevance(title: str, body: str) -> dict:
     """Score how relevant an issue is to the repository scope.
@@ -45,9 +47,12 @@ def _parse_response(response: str) -> dict:
     """Parse LLM JSON response with fallback defaults."""
     try:
         data = json.loads(response)
+        category = data.get("category", "needs discussion")
+        if category not in CATEGORIES:
+            category = "needs discussion"
         return {
             "score": int(data.get("score", 5)),
-            "category": data.get("category", "needs discussion"),
+            "category": category,
             "irrelevant": bool(data.get("irrelevant", False)),
             "reasoning": data.get("reasoning", ""),
         }

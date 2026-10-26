@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `self-triage.yml`, README and `docs/integrations.md` examples: `api_base` now reads `secrets.LLM_BASE_URL` instead of `vars.LLM_BASE_URL`, so the Cloudflare account id in the URL stays out of logs
 - `README.md` restructured to the qte77 README canon (Hero → Badges → What → How → Why → Refs → License); badges reordered License → Version → CI with a linked blue Version badge (bump-my-version search string updated to match). The Inputs table, provider table and sample summary comment moved to `docs/integrations.md`; duplicated model/backend sections removed from the README. Dead GitHub Models catalog link dropped (#98)
 
+### Fixed
+
+- Issue text could steer what the bot posts: the model's free-text `reasoning` was pasted into the public summary comment, and `category` / `complexity` / `estimated_effort` passed through unchecked. The comment now shows only fixed-list values, and out-of-list model values fall back to defaults (#122)
+- `reopened` issues are triaged again; `app.py` skipped them although consumers subscribe to `reopened` (#122)
+- With `api_base` set and `llm-api-key` empty, the GitHub token (the deprecated `AI_TOKEN` default) was sent to the LLM host as the bearer; the action now refuses with a `llm-key-is-github-token` failure comment (#122)
+
 ---
 
 ## [0.4.0] - 2026-10-04

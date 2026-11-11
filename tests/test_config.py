@@ -41,6 +41,35 @@ def test_settings_defaults_when_env_empty():
     assert settings.model == "openai/gpt-4.1"
     assert settings.llm_api_key == ""
     assert settings.github_event_path == ""
+    # decide() shadow mode: off by default, never silently enabled.
+    assert settings.decide_shadow is False
+    assert settings.decide_backend == "clef"
+    assert settings.decide_model == "clef"
+    assert settings.decide_hi == 0.75
+    assert settings.decide_module_path == ""
+
+
+def test_settings_decide_shadow_env_vars():
+    """decide() shadow inputs are read and coerced like any other setting."""
+    # Arrange
+    env = {
+        "DECIDE_SHADOW": "true",
+        "DECIDE_BACKEND": "jev",
+        "DECIDE_MODEL": "jev-1.13.0",
+        "DECIDE_HI": "0.85",
+        "DECIDE_MODULE_PATH": "decide-gate/decide.py",
+    }
+
+    # Act
+    with patch.dict("os.environ", env, clear=True):
+        settings = AppSettings()
+
+    # Assert
+    assert settings.decide_shadow is True
+    assert settings.decide_backend == "jev"
+    assert settings.decide_model == "jev-1.13.0"
+    assert settings.decide_hi == 0.85
+    assert settings.decide_module_path == "decide-gate/decide.py"
 
 
 def test_settings_invalid_number_fails_loud():

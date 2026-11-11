@@ -257,6 +257,89 @@ def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_f
     assert call_args[0][1].class_name == "llm-rate-limit"
 
 
+# ---------------------------------------------------------------------------
+# decide() shadow mode wiring — off by default, opt-in via config.settings
+# ---------------------------------------------------------------------------
+
+
+@patch("src.app.run_shadow")
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_decide_shadow_off_never_calls_run_shadow(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, mock_shadow, tmp_path
+):
+    """Default (decide_shadow=False) -> run_shadow untouched, post_summary gets shadow=None."""
+    # Arrange
+    settings = _write_event(tmp_path, "issues", "opened")
+    assert settings.decide_shadow is False
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_shadow.assert_not_called()
+    mock_post.assert_called_once_with(1, [], mock_rel.return_value, mock_feas.return_value, None)
+
+
+@patch("src.app.run_shadow")
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_decide_shadow_on_calls_run_shadow_and_passes_result(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, mock_shadow, tmp_path
+):
+    """decide_shadow=True -> run_shadow(title, body) is called and its result forwarded."""
+    # Arrange
+    mock_shadow.return_value = {
+        "relevance_relevant": {"value": True, "probability": 0.9, "band": "act"}
+    }
+    event = tmp_path / "event.json"
+    event.write_text(
+        json.dumps({"action": "opened", "issue": {"number": 1, "title": "T", "body": "B"}})
+    )
+    settings = AppSettings(
+        github_event_name="issues", github_event_path=str(event), decide_shadow=True
+    )
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_shadow.assert_called_once_with("T", "B")
+    mock_post.assert_called_once_with(
+        1, [], mock_rel.return_value, mock_feas.return_value, mock_shadow.return_value
+    )
+
+
 @patch("src.app.post_summary")
 @patch("src.app.apply_labels")
 @patch(

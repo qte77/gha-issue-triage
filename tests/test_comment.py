@@ -302,6 +302,62 @@ def test_post_summary_raises_missing_issues_write(mock_run, capsys):
     assert exc_info.value.failure.status == 403
 
 
+# ---------------------------------------------------------------------------
+# decide() shadow mode — appended section, additive only
+# ---------------------------------------------------------------------------
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_without_shadow_arg_is_unchanged(mock_run):
+    """No `shadow` arg (the default) -> body has no shadow section at all."""
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    result = post_summary(7, [], RELEVANCE, FEASIBILITY)
+
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" not in body
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_with_shadow_appends_section(mock_run):
+    """A non-empty `shadow` dict appends the decide() section, after the analysis."""
+    shadow = {
+        "relevance_relevant": {"value": True, "probability": 0.91, "band": "act"},
+        "relevance_category": {"value": None, "probability": None, "band": "escalate"},
+        "relevance_score": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_feasible": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_complexity": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_effort": {"value": None, "probability": None, "band": "escalate"},
+    }
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    result = post_summary(7, [], RELEVANCE, FEASIBILITY, shadow=shadow)
+
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" in body
+    assert "`relevance_relevant`" in body
+    assert "0.91" in body
+    # Still appears after the existing analysis lines, before the footer.
+    assert body.index("Relevance:") < body.index("Decision model")
+    assert body.index("Decision model") < body.index("Auto-generated")
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_empty_shadow_dict_omits_section(mock_run):
+    """shadow={} (shadow mode never ran) -> no section, same as omitting it."""
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    post_summary(7, [], RELEVANCE, FEASIBILITY, shadow={})
+
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" not in body
+
+
 @patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_never_renders_model_free_text(mock_run):

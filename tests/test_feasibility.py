@@ -100,6 +100,22 @@ def test_get_codebase_summary_success(mock_run):
 
 
 @patch("src.feasibility.subprocess.run")
+def test_get_codebase_summary_excludes_decide_gate_checkout(mock_run):
+    """find excludes .decide-gate -- the decide-shadow qte77/.github checkout
+    (action.yaml) must never spill into the feasibility LLM prompt."""
+    # Arrange
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = "./src/app.py\n"
+
+    # Act
+    _get_codebase_summary()
+
+    # Assert
+    cmd = mock_run.call_args.args[0]
+    assert "./.decide-gate/*" in cmd
+
+
+@patch("src.feasibility.subprocess.run")
 def test_get_codebase_summary_failure(mock_run):
     """Returns fallback message when find fails."""
     # Arrange

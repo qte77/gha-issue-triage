@@ -5,6 +5,7 @@ import sys
 
 import config
 from comment import post_failure, post_summary
+from decide_shadow import run_shadow
 from duplicates import find_duplicates
 from errors import TriageFailureError
 from feasibility import analyze_feasibility
@@ -81,8 +82,13 @@ def main() -> None:
         else:
             print("No labels to apply")
 
-        # Step 6: Post sticky analysis summary comment
-        post_summary(issue_number, duplicates, relevance, feasibility)
+        # Step 6: decide() shadow triage — opt-in calibration only, never
+        # affects labels; None (default) leaves post_summary's output
+        # byte-identical to before this feature existed.
+        shadow = run_shadow(title, body) if config.settings.decide_shadow else None
+
+        # Step 7: Post sticky analysis summary comment
+        post_summary(issue_number, duplicates, relevance, feasibility, shadow)
 
     except TriageFailureError as e:
         post_failure(issue_number, e.failure)

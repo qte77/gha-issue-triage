@@ -33,6 +33,32 @@ inputs:
   SIMILARITY_THRESHOLD:
     description: "Fuzzy match threshold 0-1."
     default: "0.6"
+  decide-shadow:
+    description: >-
+      When "true", additionally asks the triage's decision-shaped questions
+      (relevance relevant/category/score, feasibility feasible/complexity/effort)
+      through the shared qte77/.github decide() gate and appends the calibrated
+      probabilities to the sticky summary comment. Shadow only: never sets labels
+      or changes the existing analysis. Default off.
+    default: "false"
+  decide-backend:
+    description: >-
+      decide() backend used when decide-shadow is "true": "clef" (Cloudflare
+      Workers AI's Clef model, calibrated -- reuses api_base/llm-api-key, no new
+      secret), "jev" (TypeSafe, needs TYPESAFE_API_KEY), or "cf" (uncalibrated
+      OpenAI-compatible fallback).
+    default: "clef"
+  decide-model:
+    description: >-
+      Model passed to decide() when decide-shadow is "true". For backend "clef":
+      "clef" or "clef-flash".
+    default: "clef"
+  decide-hi:
+    description: >-
+      decide() confidence threshold (0-1) banding an answer "act" when
+      decide-shadow is "true". Shadow mode never acts on it -- reported for
+      calibration only.
+    default: "0.75"
 runs:
   using: "composite"
   steps:
@@ -41,6 +67,21 @@ runs:
       with:
         fetch-depth: 1
         token: ${{ inputs.GH_TOKEN }}
+
+    # Only runs when decide-shadow is enabled, so the default path's checkout
+    # footprint is unchanged. Checked out under $GITHUB_WORKSPACE (a second
+    # path outside it is rejected by actions/checkout) as ".decide-gate" --
+    # excluded from feasibility.py's codebase listing (src/feasibility.py) so
+    # it never pollutes that LLM prompt.
+    - name: Checkout decide() gate (shadow mode only)
+      if: ${{ inputs.decide-shadow == 'true' }}
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      with:
+        repository: qte77/.github
+        ref: 43ad1211e962f82fab823377dcc7272054d8196c
+        path: .decide-gate
+        sparse-checkout: actions/decide
+        persist-credentials: false
 
     - name: Setup uv
       uses: astral-sh/setup-uv@d31148d669074a8d0a63714ba94f3201e7020bc3  # v8.3.0
@@ -63,6 +104,11 @@ runs:
         ANTHROPIC_API_KEY: ${{ inputs.ANTHROPIC_API_KEY }}
         MAX_DUPLICATES: ${{ inputs.MAX_DUPLICATES }}
         SIMILARITY_THRESHOLD: ${{ inputs.SIMILARITY_THRESHOLD }}
+        DECIDE_SHADOW: ${{ inputs.decide-shadow }}
+        DECIDE_BACKEND: ${{ inputs.decide-backend }}
+        DECIDE_MODEL: ${{ inputs.decide-model }}
+        DECIDE_HI: ${{ inputs.decide-hi }}
+        DECIDE_MODULE_PATH: ${{ inputs.decide-shadow == 'true' && format('{0}/.decide-gate/actions/decide/decide.py', github.workspace) || '' }}
         PYTHONPATH: ${{ github.action_path }}/src
         UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/.venv
       run: |

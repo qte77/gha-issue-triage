@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `self-triage.yml` and the README example pin v0.6.0; self-triage turns on `decide-shadow`, so this repo's own issues collect decision-model probabilities
+
 ---
 
 ## [0.6.0] - 2026-11-11

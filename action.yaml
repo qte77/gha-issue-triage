@@ -45,7 +45,7 @@ inputs:
     description: >-
       decide() backend used when decide-shadow is "true": "clef" (Cloudflare
       Workers AI's Clef model, calibrated -- reuses api_base/llm-api-key, no new
-      secret), "jev" (TypeSafe, needs TYPESAFE_API_KEY), or "cf" (uncalibrated
+      secret), "jev" (TypeSafe, needs typesafe-api-key), or "cf" (uncalibrated
       OpenAI-compatible fallback).
     default: "clef"
   decide-model:
@@ -59,6 +59,12 @@ inputs:
       decide-shadow is "true". Shadow mode never acts on it -- reported for
       calibration only.
     default: "0.75"
+  typesafe-api-key:
+    description: >-
+      TypeSafe API key, used only when decide-shadow is "true" and
+      decide-backend is "jev". The api_base/llm-api-key credentials are never
+      sent to the jev backend.
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -108,6 +114,7 @@ runs:
         DECIDE_BACKEND: ${{ inputs.decide-backend }}
         DECIDE_MODEL: ${{ inputs.decide-model }}
         DECIDE_HI: ${{ inputs.decide-hi }}
+        TYPESAFE_API_KEY: ${{ inputs.typesafe-api-key }}
         DECIDE_MODULE_PATH: ${{ inputs.decide-shadow == 'true' && format('{0}/.decide-gate/actions/decide/decide.py', github.workspace) || '' }}
         PYTHONPATH: ${{ github.action_path }}/src
         UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/.venv

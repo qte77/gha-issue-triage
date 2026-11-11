@@ -24,6 +24,7 @@ Source of truth: [`action.yaml`](../action.yaml).
 | `decide-backend` | No | `clef` | `decide()` backend for shadow mode: `clef`, `jev`, or `cf` |
 | `decide-model` | No | `clef` | Model passed to `decide()` for backend `clef`: `clef` or `clef-flash` |
 | `decide-hi` | No | `0.75` | `decide()` confidence threshold (0-1) banding an answer `act`. Shadow mode never acts on it — reported for calibration only |
+| `typesafe-api-key` | No | `""` | TypeSafe key, used only with `decide-backend: jev`. The `api_base` / `llm-api-key` credentials are sent to the `clef` and `cf` backends only, never to `jev` |
 
 ## Current Wiring (Reference)
 

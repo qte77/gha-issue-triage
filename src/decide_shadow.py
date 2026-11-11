@@ -181,14 +181,20 @@ def run_shadow(title: str, body: str) -> dict[str, dict[str, Any]]:
     """
     try:
         decide = _load_decide()
+        backend = config.settings.decide_backend
+        # Reason: the LLM key/base belong to the Cloudflare endpoint. Only the
+        # "clef" and "cf" backends use them; "jev" reads TYPESAFE_API_KEY from
+        # the environment, so it must never receive the Cloudflare token.
+        creds: dict[str, Any] = {}
+        if backend in ("clef", "cf"):
+            creds = {"api_key": config.settings.llm_api_key, "api_base": config.settings.api_base}
         raw = decide(
             _build_state(title, body),
             _questions(),
-            backend=config.settings.decide_backend,
+            backend=backend,
             model=config.settings.decide_model,
             hi=config.settings.decide_hi,
-            api_key=config.settings.llm_api_key,
-            api_base=config.settings.api_base,
+            **creds,
         )
     except Exception as exc:  # wrap-degrade boundary, see docstring above
         print(f"::warning::decide() shadow triage failed: {exc}")

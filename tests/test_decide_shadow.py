@@ -168,6 +168,25 @@ def test_run_shadow_passes_backend_config_to_decide(monkeypatch, settings):
     assert "Some body" in calls["state"]
 
 
+def test_run_shadow_jev_backend_does_not_get_the_cloudflare_credentials(monkeypatch, settings):
+    """backend "jev": the Cloudflare key/base must not be sent; decide() reads TYPESAFE_* itself."""
+    calls = {}
+
+    def fake_decide(state, questions, **kwargs):
+        calls["kwargs"] = kwargs
+        return {}
+
+    jev = settings.model_copy(update={"decide_backend": "jev", "decide_model": "jev-1.13.0"})
+    monkeypatch.setattr("src.decide_shadow.config.settings", jev)
+    monkeypatch.setattr("src.decide_shadow._load_decide", lambda: fake_decide)
+
+    run_shadow("Some title", "Some body")
+
+    assert calls["kwargs"]["backend"] == "jev"
+    assert "api_key" not in calls["kwargs"]
+    assert "api_base" not in calls["kwargs"]
+
+
 def test_run_shadow_loader_failure_degrades_to_all_escalate(monkeypatch, settings, capsys):
     """decide.py missing/unloadable -> every question escalates, never raises."""
 

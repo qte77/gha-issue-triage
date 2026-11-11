@@ -20,6 +20,11 @@ Source of truth: [`action.yaml`](../action.yaml).
 | `AI_TOKEN` | No | `github.token` | **Deprecated** — alias for `llm-api-key` |
 | `MAX_DUPLICATES` | No | `10` | Max duplicate candidates |
 | `SIMILARITY_THRESHOLD` | No | `0.6` | Fuzzy match threshold (0-1) |
+| `decide-shadow` | No | `false` | Shadow-mode calibration: ask the triage's decision-shaped questions through the shared `qte77/.github` `decide()` gate and append the probabilities to the sticky comment. Never sets labels or changes the existing analysis — see [decide() shadow mode](#decide-shadow-mode-calibration) |
+| `decide-backend` | No | `clef` | `decide()` backend for shadow mode: `clef`, `jev`, or `cf` |
+| `decide-model` | No | `clef` | Model passed to `decide()` for backend `clef`: `clef` or `clef-flash` |
+| `decide-hi` | No | `0.75` | `decide()` confidence threshold (0-1) banding an answer `act`. Shadow mode never acts on it — reported for calibration only |
+| `typesafe-api-key` | No | `""` | TypeSafe key, used only with `decide-backend: jev`. The `api_base` / `llm-api-key` credentials are sent to the `clef` and `cf` backends only, never to `jev` |
 
 ## Current Wiring (Reference)
 
@@ -179,6 +184,47 @@ When `feasibility` is `yes` the comment also shows a `Complexity:` line:
 The duplicate line is omitted when no duplicate is found. Only fixed-list values are shown
 (category, feasibility, complexity, effort); a model value outside its list falls back to the
 default. The model's free-text reasoning is never posted, because issue text can steer it.
+
+## decide() shadow mode (calibration)
+
+Set `decide-shadow: "true"` to additionally ask the triage's decision-shaped questions —
+relevance (relevant/category/score) and feasibility (feasible/complexity/effort) — through the
+shared [`qte77/.github` `decide()` gate][decide-gate] (a calibrated decision model, backend
+`clef` by default) and append the probabilities to the same sticky comment, as a separate
+`#### Decision model (shadow)` section:
+
+```md
+#### Decision model (shadow)
+_Calibration only -- never sets labels or changes the analysis above._
+
+| Question | Value | Probability | Band |
+| --- | --- | --- | --- |
+| `relevance_relevant` | true | 0.91 | `act` |
+| `relevance_category` | bug | 0.74 | `review` |
+| ... | | | |
+```
+
+Shadow mode is **opt-in, additive, and non-blocking**: it never sets labels, never changes a
+line above it in the comment, and a `decide()` failure (missing credential, network error, a
+malformed call) degrades every question to `band: escalate` rather than failing the run — see the
+`decide_shadow.run_shadow` row in [`docs/architecture.md`](architecture.md). The `clef` backend
+reuses the action's existing `api_base` / `llm-api-key` inputs for credentials, so no new secret
+is required when those are already set (e.g. Cloudflare Workers AI, per [Path B](#path-b--openai-compatible-backend-cloudflare-workers-ai--mistral--cerebras--ollama--)
+above). Only fixed-list `value`/`probability`/`band` fields are rendered — never a raw backend
+error string — for the same reason the main comment withholds model free text (#122).
+
+A second `actions/checkout` of `qte77/.github` at a pinned SHA (into `.decide-gate/` under the
+workspace) supplies `decide.py` at runtime; it only runs when `decide-shadow` is `"true"`, and
+`.decide-gate/` is excluded from the feasibility codebase listing (`src/feasibility.py`) so it
+never changes the main feasibility prompt.
+
+**Unverified**: whether the `clef`/`jev` backends return a `score` question's `value` as the
+literal level label or a zero-based index into `levels` is not confirmed against a live call —
+`decide.py`'s own comments document this ambiguity only for its uncalibrated `cf` fallback. The
+rendered `relevance_score` value may therefore be off by this representational mismatch; treat it
+as a lead for calibration, not a confirmed score, until checked against real responses.
+
+[decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py
 
 ## Troubleshooting
 

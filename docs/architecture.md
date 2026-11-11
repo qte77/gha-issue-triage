@@ -29,6 +29,7 @@ the sibling repo `qte77/analyze-stock-kpi`).
 | Repo label lookup (`gh label list`) | `labels._get_repo_label_descriptions` | wrap-degrade | log warning; fall back to `label create` (fails harmlessly if the label exists) |
 | Sticky-comment post itself | `comment.post_summary` | wrap-degrade | log warning; never block (labels are already applied by then) |
 | Duplicate detection in-process | `duplicates.find_duplicates` | wrap-degrade | empty list; triage continues |
+| decide() shadow triage (opt-in, `decide-shadow` input) | `decide_shadow.run_shadow` | wrap-degrade | loader failure or a `decide()` call error (e.g. malformed call) → every question reported `band: escalate`; labels and the existing comment content are unaffected either way |
 
 When a code reviewer sees a new `try/except`, they look up the row. If
 no row exists for that boundary, add it as part of the PR that

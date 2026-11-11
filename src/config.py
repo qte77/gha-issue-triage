@@ -32,5 +32,17 @@ class AppSettings(BaseSettings):
     github_event_path: str = ""
     github_repository: str = ""
 
+    # decide() shadow mode (optional, off by default) — asks the triage's
+    # decision-shaped questions through the shared qte77/.github decide()
+    # gate for calibration, alongside (never instead of) the existing LLM
+    # triage. Reuses llm_api_key / api_base for the "clef" backend's
+    # credentials — no new secret. decide_module_path is set by action.yaml
+    # (pointing at a pinned qte77/.github checkout), not a caller input.
+    decide_shadow: bool = False
+    decide_backend: str = "clef"
+    decide_model: str = "clef"
+    decide_hi: float = 0.75
+    decide_module_path: str = ""
+
 
 settings = AppSettings()

@@ -5,6 +5,7 @@ import subprocess
 
 import config
 from _gh_errors import raise_or_degrade_gh_error
+from decide_shadow import format_comment_section
 from errors import TriageFailure
 
 MARKER = "<!-- gha-issue-triage:summary -->"
@@ -34,6 +35,7 @@ def post_summary(
     duplicates: list[dict],
     relevance: dict,
     feasibility: dict,
+    shadow: dict | None = None,
 ) -> bool:
     """Post or update the AI triage summary comment on the issue.
 
@@ -41,8 +43,13 @@ def post_summary(
     it instead of posting a duplicate. Returns True on success, False on any
     subprocess failure (warning printed, never raises — label application has
     already succeeded by the time this is called).
+
+    `shadow` is the (optional) decide() shadow-mode result from
+    `decide_shadow.run_shadow()` — calibration only, appended as a clearly
+    separate section; omitting it (the default) leaves the comment unchanged
+    from before shadow mode existed.
     """
-    body = _build_body(duplicates, relevance, feasibility)
+    body = _build_body(duplicates, relevance, feasibility, shadow)
     repo = config.settings.github_repository
     if not repo:
         print("::warning::GITHUB_REPOSITORY not set; skipping summary comment")
@@ -54,7 +61,9 @@ def post_summary(
     return _create_comment(issue_number, body)
 
 
-def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> str:
+def _build_body(
+    duplicates: list[dict], relevance: dict, feasibility: dict, shadow: dict | None = None
+) -> str:
     """Render the summary markdown body, including the hidden marker.
 
     Only fixed-list values are rendered. The model's free-text `reasoning` is left out:
@@ -78,6 +87,10 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
         if effort:
             cx_line += f" (~{effort})"
         lines.append(cx_line)
+
+    if shadow:
+        lines.append("")
+        lines.append(format_comment_section(shadow))
 
     lines.append("")
     lines.append(

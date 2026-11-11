@@ -55,7 +55,23 @@ def analyze_feasibility(title: str, body: str) -> dict:
 def _get_codebase_summary() -> str:
     """Get a brief summary of the codebase structure via file listing."""
     result = subprocess.run(
-        ["find", ".", "-type", "f", "-not", "-path", "./.git/*", "-not", "-path", "./.venv/*"],
+        [
+            "find",
+            ".",
+            "-type",
+            "f",
+            "-not",
+            "-path",
+            "./.git/*",
+            "-not",
+            "-path",
+            "./.venv/*",
+            # Reason: qte77/.github decide() gate checkout (decide-shadow mode,
+            # action.yaml) -- not part of this repo's codebase.
+            "-not",
+            "-path",
+            "./.decide-gate/*",
+        ],
         capture_output=True,
         text=True,
         check=False,

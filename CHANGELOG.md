@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `decide-shadow` mode: asks the triage's decision-shaped questions (relevance relevant/category/score, feasibility feasible/complexity/effort) through the shared `qte77/.github` `decide()` gate alongside the existing LLM triage, and appends the calibrated probabilities to the sticky summary comment as a separate section. Off by default (`decide-shadow: "false"`); never sets labels or changes the existing analysis, and a `decide()` failure degrades to `band: escalate` rather than failing the run. New inputs `decide-shadow`, `decide-backend` (default `clef`), `decide-model` (default `clef`), `decide-hi` (default `0.75`) — the `clef` backend reuses the existing `api_base` / `llm-api-key` inputs for credentials, no new secret required. The `jev` backend reads its key from the new `typesafe-api-key` input and never receives the Cloudflare credentials. See `docs/integrations.md#decide-shadow-mode-calibration`
+
 ---
 
 ## [0.5.0] - 2026-10-26

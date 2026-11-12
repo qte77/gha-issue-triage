@@ -82,8 +82,27 @@ def test_sanitize_score_outside_levels_becomes_none():
     assert result["value"] is None
 
 
-def test_sanitize_score_in_levels_normalizes_to_str():
-    result = _sanitize("relevance_score", _answer(value=7, probability=0.4, band="review"))
+@pytest.mark.parametrize(
+    ("score", "level"),
+    [(0.0, "1"), (6.4, "7"), (6.5, "8"), (9.0, "10"), (3, "4")],
+)
+def test_sanitize_score_maps_zero_based_weighted_index_to_level(score, level):
+    """Clef/Jev answer a score question with a number: the probability-weighted,
+    zero-based level index, which can land between levels (Clef output schema:
+    "Probability-weighted level; can land between levels"; "0 = lowest level").
+    The shadow shows the nearest level label."""
+    result = _sanitize("relevance_score", _answer(value=score, probability=0.4, band="review"))
+    assert result["value"] == level
+
+
+@pytest.mark.parametrize("score", [-0.6, 9.6, float("nan"), float("inf")])
+def test_sanitize_score_index_outside_levels_becomes_none(score):
+    result = _sanitize("relevance_score", _answer(value=score, probability=0.4))
+    assert result["value"] is None
+
+
+def test_sanitize_score_level_label_passes_through():
+    result = _sanitize("relevance_score", _answer(value="7", probability=0.4))
     assert result["value"] == "7"
 
 

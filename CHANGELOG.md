@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.7.0] - 2026-11-12
+
 ### Added
 
 - Relevance scoring reads `AGENTS.md` as repo context when the repo has no `CLAUDE.md`, as Claude Code does, and also when `CLAUDE.md` imports it with an `@AGENTS.md` line. Before, such repos were scored on `README.md` alone, or on the one-line import

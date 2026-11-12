@@ -10,6 +10,7 @@ import pytest
 
 from src.decide_shadow import (
     _QUESTION_NAMES,
+    _log_raw_score,
     _questions,
     _sanitize,
     format_comment_section,
@@ -319,3 +320,28 @@ def test_run_shadow_never_logs_non_numeric_score_text(monkeypatch, settings, cap
     out = capsys.readouterr().out
     assert f"decide-shadow raw relevance_score: not a number ({type(value).__name__})" in out
     assert "PROBE" not in out
+
+
+def test_log_raw_score_overflow_value_does_not_raise(capsys):
+    """An absurdly large JSON integer (outside float range) must degrade, not
+    raise OverflowError -- a bare `float(value)` call (and `math.isfinite` on
+    a raw int) raises for such a value, and this runs outside run_shadow()'s
+    own wrap-degrade try/except."""
+    _log_raw_score("relevance_score", {"value": 10**400, "probability": 0.5})
+    assert "overflow" in capsys.readouterr().out.lower()
+
+
+def test_run_shadow_overflow_score_degrades_instead_of_raising(monkeypatch, settings, capsys):
+    """Same boundary as above, exercised through run_shadow()'s full path:
+    the raw-score job-log line and _sanitize's index mapping both execute
+    after run_shadow()'s own try/except, so neither may raise."""
+
+    def fake_decide(*a, **kw):
+        return {"relevance_score": {"value": 10**400, "probability": 0.5, "band": "review"}}
+
+    monkeypatch.setattr("src.decide_shadow._load_decide", lambda: fake_decide)
+
+    result = run_shadow("Title", "Body")  # must not raise
+
+    assert result["relevance_score"]["value"] is None
+    assert "overflow" in capsys.readouterr().out.lower()

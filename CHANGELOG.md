@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Decide shadow's raw-score job-log line no longer raises `OverflowError` on
+  an absurdly large JSON integer from the backend -- it now logs `overflow`
+  instead, preserving `run_shadow()`'s never-raises contract.
+
 ### Changed
 
 - `self-triage.yml` and the README example pin v0.7.1

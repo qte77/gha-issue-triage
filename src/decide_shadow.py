@@ -174,11 +174,28 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
     return {"value": value, "probability": probability, "band": band}
 
 
+def _safe_float(value: int | float) -> float | None:
+    """`float(value)`, or None if the conversion overflows.
+
+    An absurdly large JSON integer (arbitrary-precision, unlike float) raises
+    `OverflowError` from a bare `float()` call, and `math.isfinite` raises the
+    same error when given such an int directly (it is not first coerced to
+    float). The call sites below are reached outside `run_shadow()`'s own
+    wrap-degrade `try`/`except`, so each converts through this helper instead
+    of calling `float()`/`math.isfinite` on the raw value.
+    """
+    try:
+        return float(value)
+    except OverflowError:
+        return None
+
+
 def _score_level(index: float, levels: tuple[str, ...]) -> str | None:
     """Nearest level label for a weighted zero-based index (half rounds up), else None."""
-    if not math.isfinite(index):
+    value = _safe_float(index)
+    if value is None or not math.isfinite(value):
         return None
-    nearest = math.floor(index + 0.5)
+    nearest = math.floor(value + 0.5)
     return levels[nearest] if 0 <= nearest < len(levels) else None
 
 
@@ -221,17 +238,22 @@ def _log_raw_score(name: str, answer: dict[str, Any]) -> None:
 
     Lets a live run confirm the zero-based weighted index the sanitizer assumes.
     Only a float (or the value's type name) is printed, so no model-steered text
-    reaches the log.
+    reaches the log. Never raises: an absurdly large JSON integer overflows a
+    bare `float()` call (see `_safe_float`), and this runs outside
+    `run_shadow()`'s own wrap-degrade try/except.
     """
     value = answer.get("value")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
         confidence = answer.get("probability")
-        conf = (
-            f"{float(confidence):.2f}"
+        confidence_value = (
+            _safe_float(confidence)
             if isinstance(confidence, (int, float)) and not isinstance(confidence, bool)
-            else "-"
+            else None
         )
-        print(f"decide-shadow raw {name}: {float(value):.3f} (confidence {conf})")
+        conf = f"{confidence_value:.2f}" if confidence_value is not None else "-"
+        value_value = _safe_float(value)
+        value_str = f"{value_value:.3f}" if value_value is not None else "overflow"
+        print(f"decide-shadow raw {name}: {value_str} (confidence {conf})")
     else:
         print(f"decide-shadow raw {name}: not a number ({type(value).__name__})")
 

@@ -9,16 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Decide shadow's `relevance_score` sanitizing no longer misreads the `cf`
+- Decide shadow's `relevance_score` sanitizing no longer reads the `cf`
   backend's answer as a zero-based level index (#133's mapping, correct for
-  Clef/Jev's calibrated score head): `cf` is an uncalibrated chat model that
-  answers the question's own "scale of 1 to 10" framing literally, so a
-  literal "7" rendered "8" and "10" rendered "-". `cf` answers are now
+  Clef/Jev's calibrated score head): `cf`'s prompt carries both this
+  question's own "scale of 1 to 10" framing and a generic zero-based-index
+  hint, and is assumed (per code review) to follow the former, so a literal
+  "7" was rendering "8" and "10" was rendering "-". `cf` answers are now
   mapped 1:1 to their level label; Clef/Jev's zero-based-index mapping is
-  unchanged.
-- Decide shadow's raw-score job-log line no longer raises `OverflowError` on
-  an absurdly large JSON integer from the backend -- it now logs `overflow`
-  instead, preserving `run_shadow()`'s never-raises contract.
+  unchanged. See `docs/integrations.md` for how to confirm the assumption
+  from a live run's raw-score job log.
+- Decide shadow's raw-score job-log line, and `_sanitize`'s `value`/
+  `probability` conversions, no longer raise `OverflowError` on an absurdly
+  large JSON number from the backend -- each now degrades (logged as
+  `overflow`, or sanitized to `None`) instead, preserving `run_shadow()`'s
+  never-raises contract.
 - `action.yaml`'s decide-gate `actions/checkout` step was left pinned to the
   superseded v7.0.0 while the primary checkout step moved to v7.0.1; both now
   pin the same version/SHA.

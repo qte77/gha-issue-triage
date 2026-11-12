@@ -148,17 +148,20 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
     two schemes depending on `answer["source"]` (set by decide.py per
     backend):
 
-    - "cf": a literal 1-based answer (see `_score_label`) -- the uncalibrated
-      chat model answers this question's own natural-language "scale of 1 to
-      10" framing, not decide.py's generic zero-based-index hint built for a
-      calibrated score head.
+    - "cf": a literal 1-based answer (see `_score_label`) -- assumed, per code
+      review and not yet confirmed against a live response, to follow this
+      question's natural-language "scale of 1 to 10" framing rather than
+      decide.py's generic zero-based-index hint built for a calibrated score
+      head; see docs/integrations.md for how to confirm this from the raw
+      score logged by `_log_raw_score`.
     - anything else (clef/jev, or unset): the probability-weighted,
       zero-based index into `levels`, which can land between levels (Clef's
       model page, developers.cloudflare.com/workers-ai/models/clef-flash/,
       read 2026-11-12; Clef takes Jev's wire shape) -- see `_score_level`.
 
     Either way, a value outside the levels becomes None. A label string is
-    still accepted as-is (handled below, not by either helper).
+    still accepted as-is (handled below, not by either helper). `probability`
+    is guarded the same way (`_safe_float`) against an oversized JSON number.
     """
     value = answer.get("value")
     if name in _PREDICATE_NAMES:
@@ -176,7 +179,9 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
 
     probability = answer.get("probability")
     if isinstance(probability, (int, float)) and not isinstance(probability, bool):
-        probability = round(float(probability), 2)
+        probability = _safe_float(probability)
+        if probability is not None:
+            probability = round(probability, 2)
     else:
         probability = None
 
@@ -214,12 +219,16 @@ def _score_level(index: float, levels: tuple[str, ...]) -> str | None:
 def _score_label(value: float, levels: tuple[str, ...]) -> str | None:
     """Nearest level label for a literal (not zero-based) answer, else None.
 
-    The "cf" backend is an uncalibrated OpenAI-compatible chat model. It is
-    asked this question's own natural-language "scale of 1 (not relevant) to
-    10 (highly relevant)" framing (see `_questions()`), which it tends to
-    answer literally rather than following decide.py's generic zero-based-
-    index hint built for Clef/Jev's calibrated score head -- see `_sanitize`'s
-    docstring. Rounding (half up) accommodates a model that answers with a
+    The "cf" backend is an uncalibrated OpenAI-compatible chat model, asked
+    this question's own natural-language "scale of 1 (not relevant) to 10
+    (highly relevant)" framing (see `_questions()`). decide.py's generic
+    `_cf_prompt()` also appends a zero-based-index hint built for Clef/Jev's
+    calibrated score head; this mapping assumes (per code review, not yet
+    confirmed against a live response) that an uncalibrated chat model
+    follows the more prominent natural-language framing over that hint --
+    see `_sanitize`'s docstring and docs/integrations.md for how to confirm
+    this from the `decide-shadow raw relevance_score:` job-log line on a live
+    run. Rounding (half up) accommodates a model that answers with a
     confidence-weighted fractional number anyway.
     """
     number = _safe_float(value)

@@ -226,9 +226,13 @@ shown as `-`. This is documented behaviour for Clef, which takes Jev's wire shap
 been checked against a raw live response, so treat the value as a lead for calibration. Each run
 prints the raw number to the job log (`decide-shadow raw relevance_score: …`); a number confirms
 the shape; values staying within 0–9 across runs, and any value below 1, support the zero-based
-reading. The `cf` backend is different: its uncalibrated chat model answers the question's own
-"scale of 1 to 10" framing literally, so its number is read as the level itself (1 → `1`, not `2`),
-not a zero-based index.
+reading. The `cf` backend is different: its prompt (built by `qte77/.github`'s `decide.py`)
+carries both this question's own "scale of 1 to 10" framing *and* a generic zero-based-index hint
+meant for a calibrated score head, so its number is read as the level itself (1 → `1`, not `2`),
+assuming the uncalibrated chat model follows the former over the latter -- per code review, not
+yet checked against a raw live response either. The same job-log line above is the way to check
+it: a raw `cf` value of `10` supports the literal reading; one capped at `9` (or a `0`) would mean
+the model is following the zero-based hint instead, and this mapping would need to flip.
 
 [clef-schema]: https://developers.cloudflare.com/workers-ai/models/clef-flash/
 [decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py

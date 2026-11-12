@@ -211,7 +211,29 @@ def run_shadow(title: str, body: str) -> dict[str, dict[str, Any]]:
         print(f"::warning::decide() shadow triage failed: {exc}")
         raw = {}
 
+    for name in _SCORE_NAMES:
+        _log_raw_score(name, raw.get(name, {}))
     return {name: _sanitize(name, raw.get(name, {})) for name in _QUESTION_NAMES}
+
+
+def _log_raw_score(name: str, answer: dict[str, Any]) -> None:
+    """Print a score answer's raw number to the job log, never to the comment.
+
+    Lets a live run confirm the zero-based weighted index the sanitizer assumes.
+    Only a float (or the value's type name) is printed, so no model-steered text
+    reaches the log.
+    """
+    value = answer.get("value")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        confidence = answer.get("probability")
+        conf = (
+            f"{float(confidence):.2f}"
+            if isinstance(confidence, (int, float)) and not isinstance(confidence, bool)
+            else "-"
+        )
+        print(f"decide-shadow raw {name}: {float(value):.3f} (confidence {conf})")
+    else:
+        print(f"decide-shadow raw {name}: not a number ({type(value).__name__})")
 
 
 def format_comment_section(results: dict[str, dict[str, Any]]) -> str:

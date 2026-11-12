@@ -284,3 +284,38 @@ def test_format_comment_section_never_contains_raw_error_text():
     section = format_comment_section(results)
     assert "Traceback" not in section
     assert "HTTP" not in section
+
+
+# ---------------------------------------------------------------------------
+# raw score logging — lets a live run confirm the score's indexing (plan 0013 A6)
+# ---------------------------------------------------------------------------
+
+
+def test_run_shadow_logs_raw_numeric_score(monkeypatch, settings, capsys):
+    """The raw score number goes to the job log (not the comment), so a live run
+    shows whether it is a zero-based weighted index."""
+
+    def fake_decide(*a, **kw):
+        return {"relevance_score": {"value": 6.4321, "probability": 0.04, "band": "escalate"}}
+
+    monkeypatch.setattr("src.decide_shadow._load_decide", lambda: fake_decide)
+
+    run_shadow("Title", "Body")
+
+    assert "decide-shadow raw relevance_score: 6.432 (confidence 0.04)" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("value", ["## PROBE @someone", None, True])
+def test_run_shadow_never_logs_non_numeric_score_text(monkeypatch, settings, capsys, value):
+    """A non-numeric value is logged by type name only -- never echoed."""
+
+    def fake_decide(*a, **kw):
+        return {"relevance_score": {"value": value, "probability": None, "band": "escalate"}}
+
+    monkeypatch.setattr("src.decide_shadow._load_decide", lambda: fake_decide)
+
+    run_shadow("Title", "Body")
+
+    out = capsys.readouterr().out
+    assert f"decide-shadow raw relevance_score: not a number ({type(value).__name__})" in out
+    assert "PROBE" not in out

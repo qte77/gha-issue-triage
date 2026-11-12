@@ -223,7 +223,9 @@ zero-based index into `levels`, which can land between levels (the [Clef model p
 describes the answer as a "probability-weighted score (0 = lowest level)"). The shadow section shows the nearest level label (index 6.4 → `7`); an index
 outside the levels is shown as `-`. This is documented behaviour for Clef, which takes Jev's wire
 shape; it has not yet been checked against a raw live response, so treat the value as a lead for
-calibration until a live comment confirms it.
+calibration. Each run prints the raw number to the job log (`decide-shadow raw relevance_score: …`);
+a number confirms the shape; values staying within 0–9 across runs, and any value below 1, support
+the zero-based reading.
 
 [clef-schema]: https://developers.cloudflare.com/workers-ai/models/clef-flash/
 [decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py

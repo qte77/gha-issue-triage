@@ -22,6 +22,7 @@ checks out `qte77/.github` at a pinned SHA into `DECIDE_MODULE_PATH` only when
 """
 
 import importlib.util
+import math
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ _COMPLEXITY_LEVELS = ("low", "medium", "high")
 _EFFORT_LEVELS = ("hours", "days", "weeks")
 
 _PREDICATE_NAMES = ("relevance_relevant", "feasibility_feasible")
+_SCORE_NAMES = ("relevance_score",)
 
 # Closed vocabulary per question -- any value decide() returns outside this
 # set is discarded (-> None) rather than rendered, same discipline as
@@ -142,16 +144,17 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
 
     A value outside the fixed list, or of the wrong type, becomes None rather
     than being echoed verbatim -- see the module docstring and `_CLOSED_SETS`.
-    NOTE (unverified): whether a "score" answer's `value` is the level label
-    itself or a zero-based index into `levels` is not confirmed for the
-    `clef`/`jev` backends (decide.py documents this ambiguity only for its own
-    uncalibrated `cf` fallback) -- this matches on the *stringified* value
-    against the fixed level set, which accepts a label match but can't tell an
-    index apart from a numerically-equal label (e.g. index `6` vs level `"6"`).
+    A "score" answer is a number: the probability-weighted, zero-based index
+    into `levels`, which can land between levels (Clef's output schema,
+    developers.cloudflare.com/workers-ai/models/clef-flash/, read 2026-11-12;
+    Clef takes Jev's wire shape). It is mapped to the nearest level label; an
+    index outside the levels becomes None. A label string is still accepted.
     """
     value = answer.get("value")
     if name in _PREDICATE_NAMES:
         value = value if isinstance(value, bool) else None
+    elif name in _SCORE_NAMES and isinstance(value, (int, float)) and not isinstance(value, bool):
+        value = _score_level(value, _CLOSED_SETS[name])
     else:
         allowed = _CLOSED_SETS.get(name, ())
         if isinstance(value, bool) or not isinstance(value, (str, int, float)):
@@ -169,6 +172,14 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
     band = band if band in _BANDS else "escalate"
 
     return {"value": value, "probability": probability, "band": band}
+
+
+def _score_level(index: float, levels: tuple[str, ...]) -> str | None:
+    """Nearest level label for a weighted zero-based index (half rounds up), else None."""
+    if not math.isfinite(index):
+        return None
+    nearest = math.floor(index + 0.5)
+    return levels[nearest] if 0 <= nearest < len(levels) else None
 
 
 def run_shadow(title: str, body: str) -> dict[str, dict[str, Any]]:

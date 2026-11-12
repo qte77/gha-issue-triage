@@ -218,12 +218,15 @@ workspace) supplies `decide.py` at runtime; it only runs when `decide-shadow` is
 `.decide-gate/` is excluded from the feasibility codebase listing (`src/feasibility.py`) so it
 never changes the main feasibility prompt.
 
-**Unverified**: whether the `clef`/`jev` backends return a `score` question's `value` as the
-literal level label or a zero-based index into `levels` is not confirmed against a live call —
-`decide.py`'s own comments document this ambiguity only for its uncalibrated `cf` fallback. The
-rendered `relevance_score` value may therefore be off by this representational mismatch; treat it
-as a lead for calibration, not a confirmed score, until checked against real responses.
+**`relevance_score` values:** a `score` answer is a number, the probability-weighted,
+zero-based index into `levels`, which can land between levels ([Clef's output schema][clef-schema]:
+"Probability-weighted level; can land between levels"; the model page's example says
+"0 = lowest level"). The shadow section shows the nearest level label (index 6.4 → `7`); an index
+outside the levels is shown as `-`. This is documented behaviour for Clef, which takes Jev's wire
+shape; it has not yet been checked against a raw live response, so treat the value as a lead for
+calibration until a live comment confirms it.
 
+[clef-schema]: https://developers.cloudflare.com/workers-ai/models/clef-flash/
 [decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py
 
 ## Troubleshooting

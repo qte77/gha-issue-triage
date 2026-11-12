@@ -45,7 +45,7 @@ jobs:
       issues: write
       contents: read
     steps:
-      - uses: qte77/gha-issue-triage@c3af11492ee575e64641e18bef7f0f6898143279  # v0.6.0
+      - uses: qte77/gha-issue-triage@ed67575a4bafa6170f78d3d0e04bb1f3b995c694  # v0.7.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}

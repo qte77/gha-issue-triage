@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Decide shadow's raw-score job-log line no longer raises `OverflowError` on
   an absurdly large JSON integer from the backend -- it now logs `overflow`
   instead, preserving `run_shadow()`'s never-raises contract.
+- `action.yaml`'s decide-gate `actions/checkout` step was left pinned to the
+  superseded v7.0.0 while the primary checkout step moved to v7.0.1; both now
+  pin the same version/SHA.
 
 ### Changed
 

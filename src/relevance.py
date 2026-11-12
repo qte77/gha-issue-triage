@@ -33,9 +33,24 @@ def score_relevance(title: str, body: str) -> dict:
 
 
 def _load_repo_context() -> str:
-    """Load README.md and CLAUDE.md if present for repo scope context."""
+    """Load README.md and the agent instructions if present for repo scope context.
+
+    The instructions are CLAUDE.md, or AGENTS.md when there is no CLAUDE.md
+    (as Claude Code does). AGENTS.md is also read when CLAUDE.md imports it
+    with an ``@AGENTS.md`` line.
+    """
+    names = ["README.md"]
+    claude_md = Path("CLAUDE.md")
+    if claude_md.exists():
+        names.append("CLAUDE.md")
+        lines = claude_md.read_text(encoding="utf-8").splitlines()
+        if "@AGENTS.md" in (line.strip() for line in lines):
+            names.append("AGENTS.md")
+    else:
+        names.append("AGENTS.md")
+
     parts = []
-    for name in ("README.md", "CLAUDE.md"):
+    for name in names:
         path = Path(name)
         if path.exists():
             content = path.read_text(encoding="utf-8")[:2000]

@@ -92,3 +92,46 @@ def test_parse_response_unknown_category_falls_back():
 
     # Assert
     assert result["category"] == "needs discussion"
+
+
+def test_load_repo_context_reads_agents_md_without_claude_md(tmp_path, monkeypatch):
+    """Falls back to AGENTS.md when the repo has no CLAUDE.md."""
+    # Arrange
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "AGENTS.md").write_text("Scope: agent research only.", encoding="utf-8")
+
+    # Act
+    result = _load_repo_context()
+
+    # Assert
+    assert "--- AGENTS.md ---\nScope: agent research only." in result
+
+
+def test_load_repo_context_follows_claude_md_import(tmp_path, monkeypatch):
+    """Reads AGENTS.md too when CLAUDE.md imports it with an @AGENTS.md line."""
+    # Arrange
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "CLAUDE.md").write_text("# Instructions\n\n@AGENTS.md\n", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("Scope: agent research only.", encoding="utf-8")
+
+    # Act
+    result = _load_repo_context()
+
+    # Assert
+    assert "--- CLAUDE.md ---" in result
+    assert "--- AGENTS.md ---\nScope: agent research only." in result
+
+
+def test_load_repo_context_skips_agents_md_when_claude_md_stands_alone(tmp_path, monkeypatch):
+    """A CLAUDE.md that doesn't import AGENTS.md is the only instructions file read."""
+    # Arrange
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "CLAUDE.md").write_text("Scope: Claude rules.", encoding="utf-8")
+    (tmp_path / "AGENTS.md").write_text("Other agents' rules.", encoding="utf-8")
+
+    # Act
+    result = _load_repo_context()
+
+    # Assert
+    assert "Scope: Claude rules." in result
+    assert "AGENTS.md" not in result

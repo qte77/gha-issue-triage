@@ -224,7 +224,8 @@ describes the answer as a "probability-weighted score (0 = lowest level)"). The 
 outside the levels is shown as `-`. This is documented behaviour for Clef, which takes Jev's wire
 shape; it has not yet been checked against a raw live response, so treat the value as a lead for
 calibration. Each run prints the raw number to the job log (`decide-shadow raw relevance_score: …`);
-a fractional value between 0 and 9 confirms the zero-based reading.
+a number confirms the shape; values staying within 0–9 across runs, and any value below 1, support
+the zero-based reading.
 
 [clef-schema]: https://developers.cloudflare.com/workers-ai/models/clef-flash/
 [decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py

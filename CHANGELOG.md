@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `self-triage.yml` and the README example pin v0.7.1
+
 ---
 
 ## [0.7.1] - 2026-11-12

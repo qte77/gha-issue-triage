@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.7.1] - 2026-11-12
+
 ### Added
 
 - Decide shadow mode prints each `relevance_score` answer's raw number (and its confidence) to the job log, e.g. `decide-shadow raw relevance_score: 6.432 (confidence 0.04)`, so a live run can confirm the zero-based level index the comment's 1–10 value assumes. Never in the comment; a non-numeric value is logged by type name only

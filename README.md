@@ -15,7 +15,7 @@ analysis (edited in place on re-runs).
 ## What
 
 1. **Duplicate Detection** — Fuzzy matches new issues against existing ones using `difflib.SequenceMatcher`
-2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md, CLAUDE.md)
+2. **Relevance Scoring** — LLM-based scoring against repo scope (README.md plus CLAUDE.md, or AGENTS.md when there is no CLAUDE.md or CLAUDE.md imports it)
 3. **Feasibility Analysis** — `feasibility` (`yes` / `no`: can this be built at all?) plus `complexity` (`low` / `medium` / `high`); `low` drives `good first issue`
 4. **Auto-Labeling** — Applies labels (aligned with GitHub's default label set): `bug`, `documentation`, `duplicate`, `enhancement`, `feature`, `good first issue`, `invalid`, `needs discussion`
 5. **Sticky Summary Comment** — One bot comment with the analysis, edited in place on re-runs. On auth/API failures the same slot carries a `### Triage failure` comment with the concrete fix

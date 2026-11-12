@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Relevance scoring reads `AGENTS.md` as repo context when the repo has no `CLAUDE.md`, as Claude Code does, and also when `CLAUDE.md` imports it with an `@AGENTS.md` line. Before, such repos were scored on `README.md` alone, or on the one-line import
+
 ### Changed
 
 - `self-triage.yml` and the README example pin v0.6.0; self-triage turns on `decide-shadow`, so this repo's own issues collect decision-model probabilities

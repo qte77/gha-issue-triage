@@ -107,6 +107,34 @@ def test_sanitize_score_level_label_passes_through():
     assert result["value"] == "7"
 
 
+@pytest.mark.parametrize(
+    ("score", "level"),
+    [(1, "1"), (7, "7"), (10, "10"), (6.6, "7")],
+)
+def test_sanitize_score_cf_backend_maps_literal_value_not_zero_based_index(score, level):
+    """The "cf" backend is an uncalibrated chat model answering this question's
+    own "scale of 1 to 10" instructions text literally, not decide.py's generic
+    zero-based-index hint meant for Clef/Jev's calibrated score head (#133's
+    mapping only matches that wire shape). Reading a cf answer as zero-based
+    is off by one: literal "7" would render "8", and literal "10" would
+    render "-" (index 10 is out of range for a 10-level list)."""
+    result = _sanitize(
+        "relevance_score",
+        {"value": score, "probability": None, "band": "escalate", "source": "cf"},
+    )
+    assert result["value"] == level
+
+
+def test_sanitize_score_non_cf_source_still_uses_zero_based_index():
+    """Regression pin: a Clef-sourced (or unlabeled) answer keeps #133's
+    existing zero-based-weighted-index mapping -- this fix must not change it."""
+    result = _sanitize(
+        "relevance_score",
+        {"value": 6.5, "probability": 0.4, "band": "review", "source": "clef"},
+    )
+    assert result["value"] == "8"
+
+
 def test_sanitize_rounds_probability_to_two_decimals():
     result = _sanitize("relevance_category", _answer(value="bug", probability=0.123456))
     assert result["probability"] == 0.12

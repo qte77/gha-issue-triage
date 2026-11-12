@@ -144,17 +144,29 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
 
     A value outside the fixed list, or of the wrong type, becomes None rather
     than being echoed verbatim -- see the module docstring and `_CLOSED_SETS`.
-    A "score" answer is a number: the probability-weighted, zero-based index
-    into `levels`, which can land between levels (Clef's model page,
-    developers.cloudflare.com/workers-ai/models/clef-flash/, read 2026-11-12;
-    Clef takes Jev's wire shape). It is mapped to the nearest level label; an
-    index outside the levels becomes None. A label string is still accepted.
+    A "score" answer is a number, mapped to the nearest level label by one of
+    two schemes depending on `answer["source"]` (set by decide.py per
+    backend):
+
+    - "cf": a literal 1-based answer (see `_score_label`) -- the uncalibrated
+      chat model answers this question's own natural-language "scale of 1 to
+      10" framing, not decide.py's generic zero-based-index hint built for a
+      calibrated score head.
+    - anything else (clef/jev, or unset): the probability-weighted,
+      zero-based index into `levels`, which can land between levels (Clef's
+      model page, developers.cloudflare.com/workers-ai/models/clef-flash/,
+      read 2026-11-12; Clef takes Jev's wire shape) -- see `_score_level`.
+
+    Either way, a value outside the levels becomes None. A label string is
+    still accepted as-is (handled below, not by either helper).
     """
     value = answer.get("value")
     if name in _PREDICATE_NAMES:
         value = value if isinstance(value, bool) else None
     elif name in _SCORE_NAMES and isinstance(value, (int, float)) and not isinstance(value, bool):
-        value = _score_level(value, _CLOSED_SETS[name])
+        levels = _CLOSED_SETS[name]
+        is_cf = answer.get("source") == "cf"
+        value = _score_label(value, levels) if is_cf else _score_level(value, levels)
     else:
         allowed = _CLOSED_SETS.get(name, ())
         if isinstance(value, bool) or not isinstance(value, (str, int, float)):
@@ -197,6 +209,24 @@ def _score_level(index: float, levels: tuple[str, ...]) -> str | None:
         return None
     nearest = math.floor(value + 0.5)
     return levels[nearest] if 0 <= nearest < len(levels) else None
+
+
+def _score_label(value: float, levels: tuple[str, ...]) -> str | None:
+    """Nearest level label for a literal (not zero-based) answer, else None.
+
+    The "cf" backend is an uncalibrated OpenAI-compatible chat model. It is
+    asked this question's own natural-language "scale of 1 (not relevant) to
+    10 (highly relevant)" framing (see `_questions()`), which it tends to
+    answer literally rather than following decide.py's generic zero-based-
+    index hint built for Clef/Jev's calibrated score head -- see `_sanitize`'s
+    docstring. Rounding (half up) accommodates a model that answers with a
+    confidence-weighted fractional number anyway.
+    """
+    number = _safe_float(value)
+    if number is None or not math.isfinite(number):
+        return None
+    label = str(math.floor(number + 0.5))
+    return label if label in levels else None
 
 
 def run_shadow(title: str, body: str) -> dict[str, dict[str, Any]]:

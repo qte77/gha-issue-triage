@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Decide shadow's `relevance_score` sanitizing no longer misreads the `cf`
+  backend's answer as a zero-based level index (#133's mapping, correct for
+  Clef/Jev's calibrated score head): `cf` is an uncalibrated chat model that
+  answers the question's own "scale of 1 to 10" framing literally, so a
+  literal "7" rendered "8" and "10" rendered "-". `cf` answers are now
+  mapped 1:1 to their level label; Clef/Jev's zero-based-index mapping is
+  unchanged.
 - Decide shadow's raw-score job-log line no longer raises `OverflowError` on
   an absurdly large JSON integer from the backend -- it now logs `overflow`
   instead, preserving `run_shadow()`'s never-raises contract.

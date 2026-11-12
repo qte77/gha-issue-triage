@@ -219,9 +219,8 @@ workspace) supplies `decide.py` at runtime; it only runs when `decide-shadow` is
 never changes the main feasibility prompt.
 
 **`relevance_score` values:** a `score` answer is a number, the probability-weighted,
-zero-based index into `levels`, which can land between levels ([Clef's output schema][clef-schema]:
-"Probability-weighted level; can land between levels"; the model page's example says
-"0 = lowest level"). The shadow section shows the nearest level label (index 6.4 → `7`); an index
+zero-based index into `levels`, which can land between levels (the [Clef model page][clef-schema]
+describes the answer as a "probability-weighted score (0 = lowest level)"). The shadow section shows the nearest level label (index 6.4 → `7`); an index
 outside the levels is shown as `-`. This is documented behaviour for Clef, which takes Jev's wire
 shape; it has not yet been checked against a raw live response, so treat the value as a lead for
 calibration until a live comment confirms it.

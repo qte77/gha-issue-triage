@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Decide shadow mode showed `-` for every `relevance_score`: the clef/jev backends answer a `score` question with a number (the probability-weighted, zero-based level index, per Clef's output schema), which the sanitizer rejected because it only accepted the level labels. The number is now mapped to the nearest level label (`6.4` → `7`); an index outside the levels still shows `-`
+- Decide shadow mode showed `-` for every `relevance_score`: the clef/jev backends answer a `score` question with a number (the probability-weighted, zero-based level index, per Clef's model page), which the sanitizer rejected because it only accepted the level labels. The number is now mapped to the nearest level label (`6.4` → `7`); an index outside the levels still shows `-`
 
 ### Changed
 

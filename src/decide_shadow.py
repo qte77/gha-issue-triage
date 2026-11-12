@@ -145,7 +145,7 @@ def _sanitize(name: str, answer: dict[str, Any]) -> dict[str, Any]:
     A value outside the fixed list, or of the wrong type, becomes None rather
     than being echoed verbatim -- see the module docstring and `_CLOSED_SETS`.
     A "score" answer is a number: the probability-weighted, zero-based index
-    into `levels`, which can land between levels (Clef's output schema,
+    into `levels`, which can land between levels (Clef's model page,
     developers.cloudflare.com/workers-ai/models/clef-flash/, read 2026-11-12;
     Clef takes Jev's wire shape). It is mapped to the nearest level label; an
     index outside the levels becomes None. A label string is still accepted.

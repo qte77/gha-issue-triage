@@ -17,5 +17,5 @@ permissions:
 
 jobs:
   lint:
-    uses: qte77/.github/.github/workflows/lint-md-links.yml@9ed630f21c0f3ae0285bf621e73a8dc5d086b4bf  # 2026-05-17
+    uses: qte77/.github/.github/workflows/lint-md-links.yml@90a18e43345f00ce6159f6b4c6205cdef60097fa  # 2026-11-12 (main)
 ...

@@ -81,7 +81,7 @@ runs:
     # it never pollutes that LLM prompt.
     - name: Checkout decide() gate (shadow mode only)
       if: ${{ inputs.decide-shadow == 'true' }}
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       with:
         repository: qte77/.github
         ref: 43ad1211e962f82fab823377dcc7272054d8196c

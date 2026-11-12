@@ -10,6 +10,7 @@ import pytest
 
 from src.decide_shadow import (
     _QUESTION_NAMES,
+    _log_raw_score,
     _questions,
     _sanitize,
     format_comment_section,
@@ -106,6 +107,34 @@ def test_sanitize_score_level_label_passes_through():
     assert result["value"] == "7"
 
 
+@pytest.mark.parametrize(
+    ("score", "level"),
+    [(1, "1"), (7, "7"), (10, "10"), (6.6, "7")],
+)
+def test_sanitize_score_cf_backend_maps_literal_value_not_zero_based_index(score, level):
+    """The "cf" backend is an uncalibrated chat model answering this question's
+    own "scale of 1 to 10" instructions text literally, not decide.py's generic
+    zero-based-index hint meant for Clef/Jev's calibrated score head (#133's
+    mapping only matches that wire shape). Reading a cf answer as zero-based
+    is off by one: literal "7" would render "8", and literal "10" would
+    render "-" (index 10 is out of range for a 10-level list)."""
+    result = _sanitize(
+        "relevance_score",
+        {"value": score, "probability": None, "band": "escalate", "source": "cf"},
+    )
+    assert result["value"] == level
+
+
+def test_sanitize_score_non_cf_source_still_uses_zero_based_index():
+    """Regression pin: a Clef-sourced (or unlabeled) answer keeps #133's
+    existing zero-based-weighted-index mapping -- this fix must not change it."""
+    result = _sanitize(
+        "relevance_score",
+        {"value": 6.5, "probability": 0.4, "band": "review", "source": "clef"},
+    )
+    assert result["value"] == "8"
+
+
 def test_sanitize_rounds_probability_to_two_decimals():
     result = _sanitize("relevance_category", _answer(value="bug", probability=0.123456))
     assert result["probability"] == 0.12
@@ -113,6 +142,14 @@ def test_sanitize_rounds_probability_to_two_decimals():
 
 def test_sanitize_non_numeric_probability_becomes_none():
     result = _sanitize("relevance_category", _answer(value="bug", probability="high"))
+    assert result["probability"] is None
+
+
+def test_sanitize_overflow_probability_becomes_none_without_raising():
+    """Same OverflowError boundary as the raw-score log, reached through
+    _sanitize()'s own probability rounding (also outside run_shadow()'s
+    wrap-degrade try/except)."""
+    result = _sanitize("relevance_category", _answer(value="bug", probability=10**400))
     assert result["probability"] is None
 
 
@@ -319,3 +356,28 @@ def test_run_shadow_never_logs_non_numeric_score_text(monkeypatch, settings, cap
     out = capsys.readouterr().out
     assert f"decide-shadow raw relevance_score: not a number ({type(value).__name__})" in out
     assert "PROBE" not in out
+
+
+def test_log_raw_score_overflow_value_does_not_raise(capsys):
+    """An absurdly large JSON integer (outside float range) must degrade, not
+    raise OverflowError -- a bare `float(value)` call (and `math.isfinite` on
+    a raw int) raises for such a value, and this runs outside run_shadow()'s
+    own wrap-degrade try/except."""
+    _log_raw_score("relevance_score", {"value": 10**400, "probability": 0.5})
+    assert "overflow" in capsys.readouterr().out.lower()
+
+
+def test_run_shadow_overflow_score_degrades_instead_of_raising(monkeypatch, settings, capsys):
+    """Same boundary as above, exercised through run_shadow()'s full path:
+    the raw-score job-log line and _sanitize's index mapping both execute
+    after run_shadow()'s own try/except, so neither may raise."""
+
+    def fake_decide(*a, **kw):
+        return {"relevance_score": {"value": 10**400, "probability": 0.5, "band": "review"}}
+
+    monkeypatch.setattr("src.decide_shadow._load_decide", lambda: fake_decide)
+
+    result = run_shadow("Title", "Body")  # must not raise
+
+    assert result["relevance_score"]["value"] is None
+    assert "overflow" in capsys.readouterr().out.lower()

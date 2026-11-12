@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `self-triage.yml` and the README example pin v0.6.0; self-triage turns on `decide-shadow`, so this repo's own issues collect decision-model probabilities
+
+---
+
+## [0.6.0] - 2026-11-11
+
+### Added
+
+- Optional `decide-shadow` mode: asks the triage's decision-shaped questions (relevance relevant/category/score, feasibility feasible/complexity/effort) through the shared `qte77/.github` `decide()` gate alongside the existing LLM triage, and appends the calibrated probabilities to the sticky summary comment as a separate section. Off by default (`decide-shadow: "false"`); never sets labels or changes the existing analysis, and a `decide()` failure degrades to `band: escalate` rather than failing the run. New inputs `decide-shadow`, `decide-backend` (default `clef`), `decide-model` (default `clef`), `decide-hi` (default `0.75`) — the `clef` backend reuses the existing `api_base` / `llm-api-key` inputs for credentials, no new secret required. The `jev` backend reads its key from the new `typesafe-api-key` input and never receives the Cloudflare credentials. See `docs/integrations.md#decide-shadow-mode-calibration`
+
+---
+
+## [0.5.0] - 2026-10-26
+
+### Added
+
+- Labels the bot creates get a default description (`labels.LABEL_DESCRIPTIONS`); existing labels with an empty description are backfilled on the next run, and a description already set is never overwritten. `gh label create --force` is no longer used, so existing labels are only touched to backfill an empty description (#93)
+
+### Changed
+
+- Env-var config centralized in `src/config.py` (`AppSettings`, a frozen `pydantic-settings` singleton): all `getenv()` callsites now read typed `config.settings.<field>`, so `MAX_DUPLICATES` / `SIMILARITY_THRESHOLD` no longer need manual `int()` / `float()`. Adds `pydantic-settings` as the action's first runtime dependency (#80)
 - `self-triage.yml`: migrated from the retired GitHub Models default to Path B (Cloudflare Workers AI) — `api_base` + `llm-api-key` + `MODEL` inputs, `models: read` permission dropped. Requires repo secret `CF_WORKERS_AI_TOKEN` (owner-provisioned); `docs/integrations.md` updated to reflect the migration
+- Releases: new thin `tag-release.yml` / `publish-release.yml` callers of the `qte77/.github` reusable workflows — a merged version bump in `pyproject.toml` is tagged `v{version}` and gets a GitHub Release from its `CHANGELOG.md` block automatically; neither ever deletes or overwrites a tag/Release (#100)
+- `self-triage.yml`, README and `docs/integrations.md` examples: `api_base` now reads `secrets.LLM_BASE_URL` instead of `vars.LLM_BASE_URL`, so the Cloudflare account id in the URL stays out of logs
+- `README.md` restructured to the qte77 README canon (Hero → Badges → What → How → Why → Refs → License); badges reordered License → Version → CI with a linked blue Version badge (bump-my-version search string updated to match). The Inputs table, provider table and sample summary comment moved to `docs/integrations.md`; duplicated model/backend sections removed from the README. Dead GitHub Models catalog link dropped (#98)
+
+### Fixed
+
+- Issue text could steer what the bot posts: the model's free-text `reasoning` was pasted into the public summary comment, and `category` / `complexity` / `estimated_effort` passed through unchecked. The comment now shows only fixed-list values, and out-of-list model values fall back to defaults (#122)
+- `reopened` issues are triaged again; `app.py` skipped them although consumers subscribe to `reopened` (#122)
+- With `api_base` set and `llm-api-key` empty, the GitHub token (the deprecated `AI_TOKEN` default) was sent to the LLM host as the bearer; the action now refuses with a `llm-key-is-github-token` failure comment (#122)
 
 ---
 

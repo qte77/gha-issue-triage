@@ -1,0 +1,21 @@
+---
+name: Tag Release
+
+# Tags v{version} when a merge to main changes the version in pyproject.toml.
+# No-op when pyproject.toml changed without a version bump; never deletes or
+# overwrites a tag (see qte77/.github#23). Publish Release chains off this run.
+
+on:
+  push:
+    branches: [main]
+    paths: [pyproject.toml]
+
+permissions:
+  contents: read
+
+jobs:
+  tag:
+    uses: qte77/.github/.github/workflows/tag-release.yml@b03592321e529d0d136b35852fc9045e96c65159
+    permissions:
+      contents: write
+...

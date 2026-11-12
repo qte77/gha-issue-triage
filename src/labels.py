@@ -1,19 +1,24 @@
 """Auto-label issues via gh CLI with reconciliation against the managed scope."""
 
+import json
 import subprocess
 
 from _gh_errors import raise_or_degrade_gh_error
 
-VALID_LABELS = {
-    "bug",
-    "documentation",
-    "duplicate",
-    "enhancement",
-    "feature",
-    "good first issue",
-    "invalid",
-    "needs discussion",
+# Default descriptions, set when the bot creates a label or finds it with an
+# empty description. A description a repo owner already set is never overwritten.
+LABEL_DESCRIPTIONS = {
+    "bug": "Something isn't working",
+    "documentation": "Improvements or additions to documentation",
+    "duplicate": "This issue or pull request already exists",
+    "enhancement": "Improvement to existing functionality",
+    "feature": "New capability / feature request",
+    "good first issue": "Good for newcomers",
+    "invalid": "This doesn't seem right",
+    "needs discussion": "Requires further discussion before action",
 }
+
+VALID_LABELS = set(LABEL_DESCRIPTIONS)
 
 # Labels the bot previously managed but no longer applies. Reconciliation
 # treats these as managed (so they appear in `managed_current`) but they're
@@ -81,12 +86,39 @@ def _get_current_labels(issue_number: int) -> set[str]:
     return {line for line in result.stdout.splitlines() if line}
 
 
+def _get_repo_label_descriptions() -> dict[str, str] | None:
+    """Map the repo's label names to their descriptions. None on failure (fail-open)."""
+    result = subprocess.run(
+        ["gh", "label", "list", "--json", "name,description", "--limit", "1000"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"::warning::Failed to list repo labels: {result.stderr}")
+        return None
+    try:
+        return {item["name"]: item.get("description") or "" for item in json.loads(result.stdout)}
+    except (json.JSONDecodeError, KeyError, TypeError):
+        print("::warning::Failed to parse gh label list output")
+        return None
+
+
 def _ensure_labels_exist(labels: list[str]) -> None:
-    """Create labels if they don't already exist."""
+    """Create missing labels with a default description; backfill empty descriptions.
+
+    Idempotent: a label that already has a description is left untouched.
+    """
+    existing = _get_repo_label_descriptions() or {}
     for label in labels:
-        subprocess.run(
-            ["gh", "label", "create", label, "--force"],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        description = LABEL_DESCRIPTIONS.get(label, "")
+        if label not in existing:
+            action = "create"
+        elif not existing[label] and description:
+            action = "edit"
+        else:
+            continue
+        cmd = ["gh", "label", action, label]
+        if description:
+            cmd.extend(["--description", description])
+        subprocess.run(cmd, capture_output=True, text=True, check=False)

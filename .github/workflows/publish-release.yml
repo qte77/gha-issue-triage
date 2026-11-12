@@ -1,0 +1,55 @@
+---
+name: Publish Release
+
+# Cuts the GitHub Release (notes from the CHANGELOG.md ## [version] block) right
+# after Tag Release tags a bump. Chained via workflow_run because a tag pushed
+# with GITHUB_TOKEN does not trigger other workflows. Never overwrites an
+# existing Release (see qte77/.github#23).
+
+on:
+  workflow_run:
+    workflows: [Tag Release]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish (default: latest v* tag)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    # Tag Release also runs (and succeeds) for pyproject.toml changes without a
+    # version bump; only publish when a v* tag points at the commit it ran on.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.find.outputs.tag }}
+    steps:
+      - name: Find the v* tag on the Tag Release commit
+        id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          TAG=$(gh api "repos/$GITHUB_REPOSITORY/tags?per_page=100" \
+            --jq '[.[] | select(.commit.sha == env.HEAD_SHA and (.name | startswith("v"))) | .name][0] // ""')
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "tag on ${HEAD_SHA}: ${TAG:-none}"
+
+  publish:
+    needs: resolve
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'workflow_dispatch' || needs.resolve.outputs.tag != '')
+    uses: qte77/.github/.github/workflows/publish-release.yml@b03592321e529d0d136b35852fc9045e96c65159
+    with:
+      tag: ${{ inputs.tag || needs.resolve.outputs.tag }}
+    permissions:
+      contents: write
+...

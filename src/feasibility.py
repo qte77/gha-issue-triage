@@ -55,7 +55,23 @@ def analyze_feasibility(title: str, body: str) -> dict:
 def _get_codebase_summary() -> str:
     """Get a brief summary of the codebase structure via file listing."""
     result = subprocess.run(
-        ["find", ".", "-type", "f", "-not", "-path", "./.git/*", "-not", "-path", "./.venv/*"],
+        [
+            "find",
+            ".",
+            "-type",
+            "f",
+            "-not",
+            "-path",
+            "./.git/*",
+            "-not",
+            "-path",
+            "./.venv/*",
+            # Reason: qte77/.github decide() gate checkout (decide-shadow mode,
+            # action.yaml) -- not part of this repo's codebase.
+            "-not",
+            "-path",
+            "./.decide-gate/*",
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -77,11 +93,17 @@ def _parse_response(response: str) -> dict:
         feasibility = data.get("feasibility", "yes")
         if feasibility not in ("yes", "no"):
             feasibility = "yes"
+        complexity = data.get("complexity", "medium")
+        if complexity not in ("low", "medium", "high"):
+            complexity = "medium"
+        effort = data.get("estimated_effort", "days")
+        if effort not in ("hours", "days", "weeks"):
+            effort = "days"
         return {
             "feasibility": feasibility,
-            "complexity": data.get("complexity", "medium"),
+            "complexity": complexity,
             "reasoning": data.get("reasoning", ""),
-            "estimated_effort": data.get("estimated_effort", "days"),
+            "estimated_effort": effort,
         }
     except (json.JSONDecodeError, ValueError):
         return {

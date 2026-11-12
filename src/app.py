@@ -2,9 +2,10 @@
 
 import json
 import sys
-from os import getenv
 
+import config
 from comment import post_failure, post_summary
+from decide_shadow import run_shadow
 from duplicates import find_duplicates
 from errors import TriageFailureError
 from feasibility import analyze_feasibility
@@ -14,8 +15,8 @@ from relevance import score_relevance
 
 def main() -> None:
     """Read GitHub event payload and dispatch to triage pipeline."""
-    event_name = getenv("GITHUB_EVENT_NAME", "")
-    event_path = getenv("GITHUB_EVENT_PATH", "")
+    event_name = config.settings.github_event_name
+    event_path = config.settings.github_event_path
 
     if event_name != "issues":
         print(f"Skipping non-issue event: {event_name}")
@@ -29,7 +30,7 @@ def main() -> None:
         event = json.load(f)
 
     action = event.get("action", "")
-    if action not in ("opened", "edited", "labeled"):
+    if action not in ("opened", "edited", "reopened", "labeled"):
         print(f"Skipping issue action: {action}")
         return
 
@@ -81,8 +82,13 @@ def main() -> None:
         else:
             print("No labels to apply")
 
-        # Step 6: Post sticky analysis summary comment
-        post_summary(issue_number, duplicates, relevance, feasibility)
+        # Step 6: decide() shadow triage — opt-in calibration only, never
+        # affects labels; None (default) leaves post_summary's output
+        # byte-identical to before this feature existed.
+        shadow = run_shadow(title, body) if config.settings.decide_shadow else None
+
+        # Step 7: Post sticky analysis summary comment
+        post_summary(issue_number, duplicates, relevance, feasibility, shadow)
 
     except TriageFailureError as e:
         post_failure(issue_number, e.failure)

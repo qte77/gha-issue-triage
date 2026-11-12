@@ -5,6 +5,27 @@ Two paths for users of `gha-issue-triage`.
 - **Path 0** — Stay on GitHub Models, switch to a smaller/faster model via the existing `MODEL` input. **GitHub Models was retired 2026-07-30 ([changelog][gh-models-retired-changelog]) — this path no longer works.** Kept documented only so the historical default is explained; move to Path B.
 - **Path B** — OpenAI-compatible backend (Cloudflare Workers AI / Mistral / Cerebras / Ollama / vLLM). **New `api_base` + `llm-api-key` inputs, no code change for callers.**
 
+## Inputs
+
+Source of truth: [`action.yaml`](../action.yaml).
+
+| Name | Required | Default | Description |
+| --- | --- | --- | --- |
+| `GH_TOKEN` | Yes | — | GitHub token for gh CLI (issue/label API calls) |
+| `api_base` | No | — | Base URL of an OpenAI-compatible endpoint (Cloudflare Workers AI/Mistral/Cerebras/Ollama/vLLM); takes precedence when set |
+| `llm-api-key` | No | — | Bearer token for the LLM backend. Falls back to the deprecated `AI_TOKEN` input, then `github.token` |
+| `MODEL` | No | `openai/gpt-4.1` | LLM model. GitHub Models default is **retired** — set a provider-specific ID when `api_base` is set |
+| `ANTHROPIC_API_KEY` | No | — | Anthropic API key (native Messages API backend) |
+| `OPENAI_API_BASE` | No | — | **Deprecated** — alias for `api_base` |
+| `AI_TOKEN` | No | `github.token` | **Deprecated** — alias for `llm-api-key` |
+| `MAX_DUPLICATES` | No | `10` | Max duplicate candidates |
+| `SIMILARITY_THRESHOLD` | No | `0.6` | Fuzzy match threshold (0-1) |
+| `decide-shadow` | No | `false` | Shadow-mode calibration: ask the triage's decision-shaped questions through the shared `qte77/.github` `decide()` gate and append the probabilities to the sticky comment. Never sets labels or changes the existing analysis — see [decide() shadow mode](#decide-shadow-mode-calibration) |
+| `decide-backend` | No | `clef` | `decide()` backend for shadow mode: `clef`, `jev`, or `cf` |
+| `decide-model` | No | `clef` | Model passed to `decide()` for backend `clef`: `clef` or `clef-flash` |
+| `decide-hi` | No | `0.75` | `decide()` confidence threshold (0-1) banding an answer `act`. Shadow mode never acts on it — reported for calibration only |
+| `typesafe-api-key` | No | `""` | TypeSafe key, used only with `decide-backend: jev`. The `api_base` / `llm-api-key` credentials are sent to the `clef` and `cf` backends only, never to `jev` |
+
 ## Current Wiring (Reference)
 
 From [`src/llm.py`](../src/llm.py): three backends, dispatched in this order — OpenAI-compatible (`api_base` set) → Anthropic (`ANTHROPIC_API_KEY` set) → GitHub Models (default, retired). `ANTHROPIC_API_KEY` flips to Anthropic with model **hardcoded** at `claude-sonnet-4-6` (`src/llm.py:198`) — `MODEL` input only affects GitHub Models and OpenAI-compatible backends. `api_base` / `llm-api-key` are the canonical inputs; `OPENAI_API_BASE` / `AI_TOKEN` are deprecated aliases resolved by `action.yaml` for backward compatibility.
@@ -13,7 +34,7 @@ From [`src/llm.py`](../src/llm.py): three backends, dispatched in this order —
 
 The action's `MODEL` default `openai/gpt-4.1` worked but is one of dozens. Issue triage (~5K in / ~500 out, no long context) is a small/fast model task. GitHub Models exposed the same Chat-Completions endpoint for every model, so swapping was a one-line change — **this entire backend now returns HTTP 410 Gone and cannot be used; switch to Path B.**
 
-Notable IDs available on GitHub Models ([catalog reference][gh-models-cat]):
+Notable IDs that were available on GitHub Models (the catalog page at `github.com/marketplace/models` returns 404 since the retirement):
 
 | Model ID | Provider | Why for triage |
 | --- | --- | --- |
@@ -67,6 +88,15 @@ Shipped in [#11](https://github.com/qte77/gha-issue-triage/issues/11) (action �
 
 References: [Cloudflare Workers AI OpenAI compatibility][cf-workers-ai-openai], [Devstral Small 2][devstral-card], [Mistral API docs][mistral-api].
 
+| Provider | `api_base` | Example `MODEL` |
+| --- | --- | --- |
+| Cloudflare Workers AI | `https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1` | `@cf/meta/llama-3.3-70b-instruct-fp8-fast` |
+| Mistral (Devstral) | `https://api.mistral.ai/v1` | `devstral-small-2505` |
+| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| Together | `https://api.together.xyz/v1` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
+| Ollama (self-hosted) | `http://localhost:11434/v1` | `devstral-small-2` |
+
 ### Caller workflows
 
 Cloudflare Workers AI (recommended default — generous free tier, verified 2026-10-04):
@@ -75,7 +105,7 @@ Cloudflare Workers AI (recommended default — generous free tier, verified 2026
 with:
   llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
   MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-  api_base: ${{ vars.LLM_BASE_URL }}  # https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
+  api_base: ${{ secrets.LLM_BASE_URL }}  # https://api.cloudflare.com/client/v4/accounts/<id>/ai/v1
 ```
 
 Mistral Devstral (cloud):
@@ -131,6 +161,71 @@ Path 0 (GitHub Models) is omitted — it is retired and no longer a viable optio
 
 1. Optionally make the Anthropic model `MODEL`-driven when `ANTHROPIC_API_KEY` is set (Sonnet 4.6 is the current hardcoded default)
 
+## Summary comment format
+
+This repo dogfoods the action via [`self-triage.yml`](../.github/workflows/self-triage.yml), so
+every new or edited issue here shows a live example. The sticky comment looks like:
+
+```md
+### AI triage summary
+
+- **Duplicate of:** #30 (similarity 0.93)
+- **Relevance:** 2/10 — `invalid`
+- **Feasibility:** `no`
+```
+
+When `feasibility` is `yes` the comment also shows a `Complexity:` line:
+
+```md
+- **Feasibility:** `yes`
+- **Complexity:** `medium` (~days)
+```
+
+The duplicate line is omitted when no duplicate is found. Only fixed-list values are shown
+(category, feasibility, complexity, effort); a model value outside its list falls back to the
+default. The model's free-text reasoning is never posted, because issue text can steer it.
+
+## decide() shadow mode (calibration)
+
+Set `decide-shadow: "true"` to additionally ask the triage's decision-shaped questions —
+relevance (relevant/category/score) and feasibility (feasible/complexity/effort) — through the
+shared [`qte77/.github` `decide()` gate][decide-gate] (a calibrated decision model, backend
+`clef` by default) and append the probabilities to the same sticky comment, as a separate
+`#### Decision model (shadow)` section:
+
+```md
+#### Decision model (shadow)
+_Calibration only -- never sets labels or changes the analysis above._
+
+| Question | Value | Probability | Band |
+| --- | --- | --- | --- |
+| `relevance_relevant` | true | 0.91 | `act` |
+| `relevance_category` | bug | 0.74 | `review` |
+| ... | | | |
+```
+
+Shadow mode is **opt-in, additive, and non-blocking**: it never sets labels, never changes a
+line above it in the comment, and a `decide()` failure (missing credential, network error, a
+malformed call) degrades every question to `band: escalate` rather than failing the run — see the
+`decide_shadow.run_shadow` row in [`docs/architecture.md`](architecture.md). The `clef` backend
+reuses the action's existing `api_base` / `llm-api-key` inputs for credentials, so no new secret
+is required when those are already set (e.g. Cloudflare Workers AI, per [Path B](#path-b--openai-compatible-backend-cloudflare-workers-ai--mistral--cerebras--ollama--)
+above). Only fixed-list `value`/`probability`/`band` fields are rendered — never a raw backend
+error string — for the same reason the main comment withholds model free text (#122).
+
+A second `actions/checkout` of `qte77/.github` at a pinned SHA (into `.decide-gate/` under the
+workspace) supplies `decide.py` at runtime; it only runs when `decide-shadow` is `"true"`, and
+`.decide-gate/` is excluded from the feasibility codebase listing (`src/feasibility.py`) so it
+never changes the main feasibility prompt.
+
+**Unverified**: whether the `clef`/`jev` backends return a `score` question's `value` as the
+literal level label or a zero-based index into `levels` is not confirmed against a live call —
+`decide.py`'s own comments document this ambiguity only for its uncalibrated `cf` fallback. The
+rendered `relevance_score` value may therefore be off by this representational mismatch; treat it
+as a lead for calibration, not a confirmed score, until checked against real responses.
+
+[decide-gate]: https://github.com/qte77/.github/blob/43ad1211e962f82fab823377dcc7272054d8196c/actions/decide/decide.py
+
 ## Troubleshooting
 
 When the action hits an auth/API failure it posts a sticky comment to the
@@ -173,6 +268,12 @@ fall back to the GitHub Models backend.
 The Bearer token in `llm-api-key` (or the deprecated `AI_TOKEN`) was rejected
 by the custom `api_base` endpoint. Verify the key is valid for that provider
 and that the endpoint URL is correct.
+
+### `llm-key-is-github-token` — GitHub token would be sent to the LLM host
+
+`api_base` is set but `llm-api-key` is empty, so the deprecated `AI_TOKEN` input fell back to
+`github.token`. The action refuses to send it to a third-party host. Set `llm-api-key` to the
+provider's own key.
 
 ### `llm-bad-response` — empty, non-JSON, or malformed-shape response body
 
@@ -221,6 +322,7 @@ PRs, use `pull_request_target` instead of `pull_request` — but read the
 ### `not-found` — HTTP 404 from any `gh` call
 
 The action could not reach the issue or repository. Common causes:
+
 - `GH_TOKEN` scope is too narrow (private repos require the `repo` scope)
 - The issue number or repository slug in the event payload is incorrect
 
@@ -233,7 +335,6 @@ resets (typically within an hour). For high-volume repositories, supply a
 PAT via `GH_TOKEN` — authenticated requests use a higher per-user quota than
 the default `GITHUB_TOKEN` (`github-actions[bot]`).
 
-[gh-models-cat]: https://github.com/marketplace/models
 [gh-models-docs]: https://docs.github.com/en/github-models/use-github-models/prototyping-with-ai-models
 [gh-models-retired-changelog]: https://github.blog/changelog/2026-07-30-github-models-is-now-retired/
 [cf-workers-ai-openai]: https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/

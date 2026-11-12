@@ -19,12 +19,16 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     steps:
-      - uses: qte77/gha-issue-triage@1bf71f215a70a9b19f228e1c190aaf578baa6a59  # v0.4.0
+      - uses: qte77/gha-issue-triage@c3af11492ee575e64641e18bef7f0f6898143279  # v0.6.0
         with:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Path B (OpenAI-compatible) via Cloudflare Workers AI. Requires
-          # repo secret CF_WORKERS_AI_TOKEN (owner must set it); variable
-          # LLM_BASE_URL is already configured as of 2026-10-10.
+          # repo secrets CF_WORKERS_AI_TOKEN and LLM_BASE_URL (a secret keeps
+          # the account id in the URL out of logs).
           llm-api-key: ${{ secrets.CF_WORKERS_AI_TOKEN }}
-          api_base: ${{ vars.LLM_BASE_URL }}
+          api_base: ${{ secrets.LLM_BASE_URL }}
           MODEL: "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+          # Shadow mode: also ask the decision-shaped questions through decide()
+          # (Clef) and append value/probability/band to the comment. Never sets
+          # labels; this repo's own issues double as calibration data.
+          decide-shadow: "true"

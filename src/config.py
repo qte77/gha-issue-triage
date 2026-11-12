@@ -1,0 +1,48 @@
+"""Typed, env-var-backed settings — the single source of truth for runtime config.
+
+Field names map to env vars case-insensitively (`max_duplicates` <- `MAX_DUPLICATES`).
+`action.yaml` resolves caller inputs into these env vars; tests inject config by
+patching `config.settings` with an explicit `AppSettings(...)`.
+"""
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class AppSettings(BaseSettings):
+    """Runtime settings read once from the environment."""
+
+    model_config = SettingsConfigDict(frozen=True)
+
+    # LLM backend — LLM_API_KEY / API_BASE are resolved by action.yaml from the
+    # api_base / llm-api-key inputs, falling back to the deprecated
+    # OPENAI_API_BASE / AI_TOKEN inputs.
+    llm_api_key: str = ""
+    model: str = "openai/gpt-4.1"
+    anthropic_api_key: str = ""
+    api_base: str = ""
+    # GH_TOKEN (gh CLI only) — read so the LLM path can refuse to send it to an LLM host.
+    gh_token: str = ""
+
+    # Duplicate detection
+    max_duplicates: int = 10
+    similarity_threshold: float = 0.6
+
+    # GitHub Actions context
+    github_event_name: str = ""
+    github_event_path: str = ""
+    github_repository: str = ""
+
+    # decide() shadow mode (optional, off by default) — asks the triage's
+    # decision-shaped questions through the shared qte77/.github decide()
+    # gate for calibration, alongside (never instead of) the existing LLM
+    # triage. Reuses llm_api_key / api_base for the "clef" backend's
+    # credentials — no new secret. decide_module_path is set by action.yaml
+    # (pointing at a pinned qte77/.github checkout), not a caller input.
+    decide_shadow: bool = False
+    decide_backend: str = "clef"
+    decide_model: str = "clef"
+    decide_hi: float = 0.75
+    decide_module_path: str = ""
+
+
+settings = AppSettings()

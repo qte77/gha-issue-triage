@@ -100,6 +100,22 @@ def test_get_codebase_summary_success(mock_run):
 
 
 @patch("src.feasibility.subprocess.run")
+def test_get_codebase_summary_excludes_decide_gate_checkout(mock_run):
+    """find excludes .decide-gate -- the decide-shadow qte77/.github checkout
+    (action.yaml) must never spill into the feasibility LLM prompt."""
+    # Arrange
+    mock_run.return_value.returncode = 0
+    mock_run.return_value.stdout = "./src/app.py\n"
+
+    # Act
+    _get_codebase_summary()
+
+    # Assert
+    cmd = mock_run.call_args.args[0]
+    assert "./.decide-gate/*" in cmd
+
+
+@patch("src.feasibility.subprocess.run")
 def test_get_codebase_summary_failure(mock_run):
     """Returns fallback message when find fails."""
     # Arrange
@@ -134,3 +150,14 @@ def test_analyze_feasibility_returns_parsed_result(mock_summary, mock_llm):
     assert result["complexity"] == "high"
     assert result["estimated_effort"] == "weeks"
     mock_llm.assert_called_once()
+
+
+def test_parse_response_unknown_enums_fall_back():
+    """complexity / estimated_effort outside their fixed lists fall back to the defaults."""
+    # Act
+    data = {"feasibility": "yes", "complexity": "low ## PROBE", "estimated_effort": "**x**"}
+    result = _parse_response(json.dumps(data))
+
+    # Assert
+    assert result["complexity"] == "medium"
+    assert result["estimated_effort"] == "days"

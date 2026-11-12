@@ -5,22 +5,20 @@ from unittest.mock import patch
 
 import pytest
 
+from config import AppSettings
 from errors import TriageFailure, TriageFailureError
 from src.app import main
 
 
 def _write_event(tmp_path, event_name, action, issue_number=1, title="Test", body="body"):
-    """Helper: write a GitHub event payload and set env vars."""
+    """Helper: write a GitHub event payload and return settings pointing at it."""
     payload = {
         "action": action,
         "issue": {"number": issue_number, "title": title, "body": body},
     }
     event_file = tmp_path / "event.json"
     event_file.write_text(json.dumps(payload))
-    return {
-        "GITHUB_EVENT_NAME": event_name,
-        "GITHUB_EVENT_PATH": str(event_file),
-    }
+    return AppSettings(github_event_name=event_name, github_event_path=str(event_file))
 
 
 @patch("src.app.post_summary")
@@ -44,10 +42,10 @@ def test_main_dispatches_opened_issue(
 ):
     """Opened issue triggers full pipeline, applies labels, posts summary."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "opened")
+    settings = _write_event(tmp_path, "issues", "opened")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -65,10 +63,10 @@ def test_main_dispatches_opened_issue(
 def test_main_skips_non_issue_event(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
     """Non-issue events are skipped without calling any triage functions."""
     # Arrange
-    env = _write_event(tmp_path, "push", "")
+    settings = _write_event(tmp_path, "push", "")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -83,10 +81,10 @@ def test_main_skips_non_issue_event(mock_dup, mock_rel, mock_feas, mock_labels, 
 def test_main_skips_closed_action(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
     """Closed action is skipped."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "closed")
+    settings = _write_event(tmp_path, "issues", "closed")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -111,10 +109,10 @@ def test_main_skips_closed_action(mock_dup, mock_rel, mock_feas, mock_labels, tm
 def test_main_dispatches_labeled_issue(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
     """Labeled action triggers the pipeline (used by label-gated self-triage)."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "labeled")
+    settings = _write_event(tmp_path, "issues", "labeled")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -143,10 +141,10 @@ def test_main_dispatches_labeled_issue(mock_dup, mock_rel, mock_feas, mock_label
 def test_main_duplicate_and_irrelevant_labels(mock_dup, mock_rel, mock_feas, mock_labels, tmp_path):
     """Duplicate + irrelevant issue gets both labels."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "opened")
+    settings = _write_event(tmp_path, "issues", "opened")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -177,10 +175,10 @@ def test_main_irrelevant_suppresses_category_label(
 ):
     """When relevance.irrelevant=true, category label (e.g. 'feature') is suppressed."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "opened")
+    settings = _write_event(tmp_path, "issues", "opened")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -211,10 +209,10 @@ def test_main_relevant_applies_category_label(
 ):
     """When relevance.irrelevant=false, the category label is applied as before."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "opened")
+    settings = _write_event(tmp_path, "issues", "opened")
 
     # Act
-    with patch.dict("os.environ", env, clear=False):
+    with patch("config.settings", settings):
         main()
 
     # Assert
@@ -244,10 +242,10 @@ def test_main_relevant_applies_category_label(
 def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_failure, tmp_path):
     """main() catches TriageFailureError, calls post_failure, exits with code 1."""
     # Arrange
-    env = _write_event(tmp_path, "issues", "opened", issue_number=42)
+    settings = _write_event(tmp_path, "issues", "opened", issue_number=42)
 
     # Act
-    with patch.dict("os.environ", env, clear=False), pytest.raises(SystemExit) as exc_info:
+    with patch("config.settings", settings), pytest.raises(SystemExit) as exc_info:
         main()
 
     # Assert: sys.exit(1) was called
@@ -257,3 +255,118 @@ def test_main_catches_triage_failure_and_exits(mock_find_duplicates, mock_post_f
     call_args = mock_post_failure.call_args
     assert call_args[0][0] == 42  # issue_number
     assert call_args[0][1].class_name == "llm-rate-limit"
+
+
+# ---------------------------------------------------------------------------
+# decide() shadow mode wiring — off by default, opt-in via config.settings
+# ---------------------------------------------------------------------------
+
+
+@patch("src.app.run_shadow")
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_decide_shadow_off_never_calls_run_shadow(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, mock_shadow, tmp_path
+):
+    """Default (decide_shadow=False) -> run_shadow untouched, post_summary gets shadow=None."""
+    # Arrange
+    settings = _write_event(tmp_path, "issues", "opened")
+    assert settings.decide_shadow is False
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_shadow.assert_not_called()
+    mock_post.assert_called_once_with(1, [], mock_rel.return_value, mock_feas.return_value, None)
+
+
+@patch("src.app.run_shadow")
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_decide_shadow_on_calls_run_shadow_and_passes_result(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, mock_shadow, tmp_path
+):
+    """decide_shadow=True -> run_shadow(title, body) is called and its result forwarded."""
+    # Arrange
+    mock_shadow.return_value = {
+        "relevance_relevant": {"value": True, "probability": 0.9, "band": "act"}
+    }
+    event = tmp_path / "event.json"
+    event.write_text(
+        json.dumps({"action": "opened", "issue": {"number": 1, "title": "T", "body": "B"}})
+    )
+    settings = AppSettings(
+        github_event_name="issues", github_event_path=str(event), decide_shadow=True
+    )
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_shadow.assert_called_once_with("T", "B")
+    mock_post.assert_called_once_with(
+        1, [], mock_rel.return_value, mock_feas.return_value, mock_shadow.return_value
+    )
+
+
+@patch("src.app.post_summary")
+@patch("src.app.apply_labels")
+@patch(
+    "src.app.analyze_feasibility",
+    return_value={
+        "feasibility": "yes",
+        "complexity": "low",
+        "reasoning": "",
+        "estimated_effort": "hours",
+    },
+)
+@patch(
+    "src.app.score_relevance",
+    return_value={"score": 8, "category": "bug", "irrelevant": False, "reasoning": ""},
+)
+@patch("src.app.find_duplicates", return_value=[])
+def test_main_dispatches_reopened_issue(
+    mock_dup, mock_rel, mock_feas, mock_labels, mock_post, tmp_path
+):
+    """Reopened issue is triaged again (consumers subscribe to `reopened`)."""
+    # Arrange
+    settings = _write_event(tmp_path, "issues", "reopened")
+
+    # Act
+    with patch("config.settings", settings):
+        main()
+
+    # Assert
+    mock_dup.assert_called_once()
+    mock_post.assert_called_once()

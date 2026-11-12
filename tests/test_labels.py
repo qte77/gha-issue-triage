@@ -1,11 +1,18 @@
 """Tests for labels.py — auto-labeling via gh CLI."""
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from errors import TriageFailureError
-from src.labels import VALID_LABELS, _ensure_labels_exist, _get_current_labels, apply_labels
+from src.labels import (
+    LABEL_DESCRIPTIONS,
+    VALID_LABELS,
+    _ensure_labels_exist,
+    _get_current_labels,
+    apply_labels,
+)
 
 
 def _mk_run(stdout: str = "", returncode: int = 0, stderr: str = ""):
@@ -214,20 +221,84 @@ def test_get_current_labels_empty_on_failure(mock_run):
     assert result == set()
 
 
+def test_every_valid_label_has_a_description():
+    """Each managed label ships a non-empty default description."""
+    assert set(LABEL_DESCRIPTIONS) == VALID_LABELS
+    assert all(LABEL_DESCRIPTIONS.values())
+
+
+def _repo_labels(*labels: tuple[str, str]):
+    """gh label list --json name,description output."""
+    return _mk_run(stdout=json.dumps([{"name": n, "description": d} for n, d in labels]))
+
+
 @patch("src.labels.subprocess.run")
-def test_ensure_labels_exist_creates_labels(mock_run):
-    """Calls gh label create for each label."""
+def test_ensure_labels_exist_creates_missing_label_with_description(mock_run):
+    """A label missing from the repo is created with its default description."""
     # Arrange
-    mock_run.return_value.returncode = 0
+    mock_run.side_effect = [_repo_labels(), _mk_run()]
 
     # Act
-    _ensure_labels_exist(["bug", "feature"])
+    _ensure_labels_exist(["feature"])
 
     # Assert
-    assert mock_run.call_count == 2
-    calls = mock_run.call_args_list
-    assert "bug" in calls[0][0][0]
-    assert "feature" in calls[1][0][0]
+    create_cmd = mock_run.call_args_list[1][0][0]
+    assert create_cmd == [
+        "gh",
+        "label",
+        "create",
+        "feature",
+        "--description",
+        LABEL_DESCRIPTIONS["feature"],
+    ]
+
+
+@patch("src.labels.subprocess.run")
+def test_ensure_labels_exist_backfills_empty_description(mock_run):
+    """An existing label with an empty description gets the default backfilled."""
+    # Arrange
+    mock_run.side_effect = [_repo_labels(("needs discussion", "")), _mk_run()]
+
+    # Act
+    _ensure_labels_exist(["needs discussion"])
+
+    # Assert
+    edit_cmd = mock_run.call_args_list[1][0][0]
+    assert edit_cmd == [
+        "gh",
+        "label",
+        "edit",
+        "needs discussion",
+        "--description",
+        LABEL_DESCRIPTIONS["needs discussion"],
+    ]
+
+
+@patch("src.labels.subprocess.run")
+def test_ensure_labels_exist_keeps_existing_description(mock_run):
+    """An existing label with a description is left untouched (idempotent re-run)."""
+    # Arrange
+    mock_run.side_effect = [_repo_labels(("bug", "Custom text"))]
+
+    # Act
+    _ensure_labels_exist(["bug"])
+
+    # Assert: only the list call, no create/edit
+    assert mock_run.call_count == 1
+
+
+@patch("src.labels.subprocess.run")
+def test_ensure_labels_exist_creates_when_label_list_fails(mock_run, capsys):
+    """If the repo labels can't be read, fall back to creating (fails harmlessly if present)."""
+    # Arrange
+    mock_run.side_effect = [_mk_run(returncode=1, stderr="boom"), _mk_run()]
+
+    # Act
+    _ensure_labels_exist(["bug"])
+
+    # Assert
+    assert mock_run.call_args_list[1][0][0][:4] == ["gh", "label", "create", "bug"]
+    assert "::warning::" in capsys.readouterr().out
 
 
 # ---------------------------------------------------------------------------

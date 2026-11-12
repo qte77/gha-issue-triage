@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from config import AppSettings
 from errors import TriageFailureError
 from src.comment import MARKER, post_failure, post_summary
 from src.errors import TriageFailure
@@ -47,7 +48,7 @@ def _fail(stderr: str = "boom") -> MagicMock:
     return m
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_creates_new_when_no_marker(mock_run):
     """No existing marker comment → posts a new one via gh issue comment."""
@@ -66,13 +67,14 @@ def test_post_summary_creates_new_when_no_marker(mock_run):
     body = cmd[cmd.index("--body") + 1]
     assert MARKER in body
     assert "#5" in body
-    assert RELEVANCE["reasoning"] in body
-    assert FEASIBILITY["reasoning"] in body
+    # Model free text never reaches the public comment (#122).
+    assert RELEVANCE["reasoning"] not in body
+    assert FEASIBILITY["reasoning"] not in body
     # Regression: the feasibility line keeps its closing paren.
     assert f"(~{FEASIBILITY['estimated_effort']})" in body
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_updates_existing_marker_comment(mock_run):
     """Existing marker comment → PATCHes that comment, no new create call."""
@@ -97,7 +99,7 @@ def test_post_summary_updates_existing_marker_comment(mock_run):
     )
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_returns_false_on_create_failure(mock_run, capsys):
     """Create-comment failure → returns False and prints a warning, never raises."""
@@ -112,7 +114,7 @@ def test_post_summary_returns_false_on_create_failure(mock_run, capsys):
     assert "::warning::Failed to create summary comment" in capsys.readouterr().out
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_omits_optional_fields_cleanly(mock_run):
     """Empty reasoning/effort produce a clean body — no trailing ' — ' or '(~)'."""
@@ -139,7 +141,7 @@ def test_post_summary_omits_optional_fields_cleanly(mock_run):
     assert " — \n" not in body
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
     """When feasibility=no, render Feasibility with reasoning, omit Complexity line."""
@@ -158,12 +160,13 @@ def test_post_summary_feasibility_no_omits_complexity_line(mock_run):
     # Assert
     assert result is True
     body = mock_run.call_args_list[1].args[0][-1]
-    assert "- **Feasibility:** `no` — Violates known physics." in body
+    assert "- **Feasibility:** `no`\n" in body
+    assert "Violates known physics." not in body
     assert "Complexity" not in body
     assert "(~weeks)" not in body
 
 
-@patch.dict("os.environ", {}, clear=True)
+@patch("config.settings", AppSettings(github_repository=""))
 @patch("src.comment.subprocess.run")
 def test_post_summary_skips_when_repo_env_missing(mock_run, capsys):
     """No GITHUB_REPOSITORY set → no subprocess calls; warn and return False."""
@@ -181,7 +184,7 @@ def test_post_summary_skips_when_repo_env_missing(mock_run, capsys):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_failure_body_format(mock_run):
     """post_failure body contains MARKER, summary, and fix_markdown."""
@@ -204,7 +207,7 @@ def test_post_failure_body_format(mock_run):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment._create_comment")
 @patch("src.comment._find_existing_comment_id")
 def test_post_failure_creates_new_when_no_marker(mock_find, mock_create):
@@ -225,7 +228,7 @@ def test_post_failure_creates_new_when_no_marker(mock_find, mock_create):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment._update_comment")
 @patch("src.comment._find_existing_comment_id")
 def test_post_failure_updates_existing_marker(mock_find, mock_update):
@@ -246,7 +249,7 @@ def test_post_failure_updates_existing_marker(mock_find, mock_update):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_overwrites_post_failure_via_marker(mock_run):
     """post_summary after post_failure updates the same comment (single marker)."""
@@ -278,7 +281,7 @@ def test_post_summary_overwrites_post_failure_via_marker(mock_run):
 # ---------------------------------------------------------------------------
 
 
-@patch.dict("os.environ", {"GITHUB_REPOSITORY": "qte77/gha-issue-triage"}, clear=False)
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
 @patch("src.comment.subprocess.run")
 def test_post_summary_raises_missing_issues_write(mock_run, capsys):
     """_create_comment gh 403 → TriageFailureError(class_name='missing-issues-write')."""
@@ -297,3 +300,79 @@ def test_post_summary_raises_missing_issues_write(mock_run, capsys):
 
     assert exc_info.value.failure.class_name == "missing-issues-write"
     assert exc_info.value.failure.status == 403
+
+
+# ---------------------------------------------------------------------------
+# decide() shadow mode — appended section, additive only
+# ---------------------------------------------------------------------------
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_without_shadow_arg_is_unchanged(mock_run):
+    """No `shadow` arg (the default) -> body has no shadow section at all."""
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    result = post_summary(7, [], RELEVANCE, FEASIBILITY)
+
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" not in body
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_with_shadow_appends_section(mock_run):
+    """A non-empty `shadow` dict appends the decide() section, after the analysis."""
+    shadow = {
+        "relevance_relevant": {"value": True, "probability": 0.91, "band": "act"},
+        "relevance_category": {"value": None, "probability": None, "band": "escalate"},
+        "relevance_score": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_feasible": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_complexity": {"value": None, "probability": None, "band": "escalate"},
+        "feasibility_effort": {"value": None, "probability": None, "band": "escalate"},
+    }
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    result = post_summary(7, [], RELEVANCE, FEASIBILITY, shadow=shadow)
+
+    assert result is True
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" in body
+    assert "`relevance_relevant`" in body
+    assert "0.91" in body
+    # Still appears after the existing analysis lines, before the footer.
+    assert body.index("Relevance:") < body.index("Decision model")
+    assert body.index("Decision model") < body.index("Auto-generated")
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_empty_shadow_dict_omits_section(mock_run):
+    """shadow={} (shadow mode never ran) -> no section, same as omitting it."""
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    post_summary(7, [], RELEVANCE, FEASIBILITY, shadow={})
+
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "Decision model" not in body
+
+
+@patch("config.settings", AppSettings(github_repository="qte77/gha-issue-triage"))
+@patch("src.comment.subprocess.run")
+def test_post_summary_never_renders_model_free_text(mock_run):
+    """Text an issue can steer the model into writing never appears in the comment (#122)."""
+    # Arrange
+    probe = "## TRIAGE-PROBE @someone **bold**"
+    relevance = {**RELEVANCE, "reasoning": probe}
+    feasibility = {**FEASIBILITY, "reasoning": probe}
+    mock_run.side_effect = [_ok(stdout="[]"), _ok()]
+
+    # Act
+    post_summary(7, [], relevance, feasibility)
+
+    # Assert
+    body = mock_run.call_args_list[1].args[0][-1]
+    assert "PROBE" not in body
+    assert "@someone" not in body
+    assert "reopened" in body

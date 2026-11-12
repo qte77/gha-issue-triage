@@ -2,9 +2,10 @@
 
 import json
 import subprocess
-from os import getenv
 
+import config
 from _gh_errors import raise_or_degrade_gh_error
+from decide_shadow import format_comment_section
 from errors import TriageFailure
 
 MARKER = "<!-- gha-issue-triage:summary -->"
@@ -18,7 +19,7 @@ def post_failure(issue_number: int, failure: TriageFailure) -> bool:
     Returns True on success, False on subprocess failure.
     """
     body = f"{MARKER}\n### Triage failure\n\n{failure.summary}\n\n{failure.fix_markdown}"
-    repo = getenv("GITHUB_REPOSITORY", "")
+    repo = config.settings.github_repository
     if not repo:
         print("::warning::GITHUB_REPOSITORY not set; skipping failure comment")
         return False
@@ -34,6 +35,7 @@ def post_summary(
     duplicates: list[dict],
     relevance: dict,
     feasibility: dict,
+    shadow: dict | None = None,
 ) -> bool:
     """Post or update the AI triage summary comment on the issue.
 
@@ -41,9 +43,14 @@ def post_summary(
     it instead of posting a duplicate. Returns True on success, False on any
     subprocess failure (warning printed, never raises — label application has
     already succeeded by the time this is called).
+
+    `shadow` is the (optional) decide() shadow-mode result from
+    `decide_shadow.run_shadow()` — calibration only, appended as a clearly
+    separate section; omitting it (the default) leaves the comment unchanged
+    from before shadow mode existed.
     """
-    body = _build_body(duplicates, relevance, feasibility)
-    repo = getenv("GITHUB_REPOSITORY", "")
+    body = _build_body(duplicates, relevance, feasibility, shadow)
+    repo = config.settings.github_repository
     if not repo:
         print("::warning::GITHUB_REPOSITORY not set; skipping summary comment")
         return False
@@ -54,8 +61,14 @@ def post_summary(
     return _create_comment(issue_number, body)
 
 
-def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> str:
-    """Render the summary markdown body, including the hidden marker."""
+def _build_body(
+    duplicates: list[dict], relevance: dict, feasibility: dict, shadow: dict | None = None
+) -> str:
+    """Render the summary markdown body, including the hidden marker.
+
+    Only fixed-list values are rendered. The model's free-text `reasoning` is left out:
+    issue text can steer it, and this comment is public (#122).
+    """
     lines = [MARKER, "### AI triage summary", ""]
     if duplicates:
         top = duplicates[0]
@@ -63,30 +76,26 @@ def _build_body(duplicates: list[dict], relevance: dict, feasibility: dict) -> s
 
     score = relevance.get("score", "?")
     category = relevance.get("category", "")
-    rel_reason = relevance.get("reasoning", "")
-    rel_line = f"- **Relevance:** {score}/10 — `{category}`"
-    if rel_reason:
-        rel_line += f" — {rel_reason}"
-    lines.append(rel_line)
+    lines.append(f"- **Relevance:** {score}/10 — `{category}`")
 
     feasible = feasibility.get("feasibility", "yes")
     complexity = feasibility.get("complexity", "")
-    feas_reason = feasibility.get("reasoning", "")
     effort = feasibility.get("estimated_effort", "")
-    feas_line = f"- **Feasibility:** `{feasible}`"
-    if feasible == "no" and feas_reason:
-        feas_line += f" — {feas_reason}"
-    lines.append(feas_line)
+    lines.append(f"- **Feasibility:** `{feasible}`")
     if feasible == "yes":
         cx_line = f"- **Complexity:** `{complexity}`"
-        if feas_reason:
-            cx_line += f" — {feas_reason}"
         if effort:
             cx_line += f" (~{effort})"
         lines.append(cx_line)
 
+    if shadow:
+        lines.append("")
+        lines.append(format_comment_section(shadow))
+
     lines.append("")
-    lines.append("_Auto-generated. Re-runs when the issue is opened, edited, or labelled._")
+    lines.append(
+        "_Auto-generated. Re-runs when the issue is opened, edited, reopened, or labelled._"
+    )
     return "\n".join(lines)
 
 

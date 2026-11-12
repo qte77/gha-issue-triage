@@ -71,6 +71,7 @@ point it at.
 - [`docs/integrations.md`](docs/integrations.md) — inputs, backends, caller examples, troubleshooting
 - [`docs/architecture.md`](docs/architecture.md) — boundary failure policies
 - [`action.yaml`](action.yaml) — input definitions
+- [Decision-model conventions](https://github.com/qte77/.github/blob/main/actions/decide/CONVENTIONS.md) — when the `decide()` gate is used, defaults, shadow-first rollout, secret names
 - [`.github/workflows/self-triage.yml`](.github/workflows/self-triage.yml) — this repo dogfooding the action
 - [`CHANGELOG.md`](CHANGELOG.md)
 

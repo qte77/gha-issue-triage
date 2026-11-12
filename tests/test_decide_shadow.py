@@ -145,6 +145,14 @@ def test_sanitize_non_numeric_probability_becomes_none():
     assert result["probability"] is None
 
 
+def test_sanitize_overflow_probability_becomes_none_without_raising():
+    """Same OverflowError boundary as the raw-score log, reached through
+    _sanitize()'s own probability rounding (also outside run_shadow()'s
+    wrap-degrade try/except)."""
+    result = _sanitize("relevance_category", _answer(value="bug", probability=10**400))
+    assert result["probability"] is None
+
+
 def test_sanitize_unknown_band_falls_back_to_escalate():
     result = _sanitize("relevance_category", _answer(value="bug", probability=0.9, band="???"))
     assert result["band"] == "escalate"

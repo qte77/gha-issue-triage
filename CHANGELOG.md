@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `AGENTS.md`: the signature rule and the subagent brief no longer spell out the
+  admin merge flag; merging unsigned commits is described as the owner's decision.
+
 ### Fixed
 
 - Decide shadow's `relevance_score` sanitizing no longer reads the `cf`

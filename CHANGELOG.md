@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `AGENTS.md`: the signature rule and the subagent brief no longer spell out the
+  admin merge flag; merging unsigned commits is described as the owner's decision.
 - `self-triage.yml` and the README example pin v0.7.1
 
 ---

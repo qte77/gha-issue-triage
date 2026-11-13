@@ -32,7 +32,7 @@ These are non-negotiable for any PR landing on `main`:
 
 - **SHA-pin every `uses:`** in workflows and `action.yaml` — full-length commit SHA, never a tag/branch. Enforced by repo `sha_pinning_required: true` policy.
 - **Squash-only merge** — repo ruleset `15253739` allows `squash` exclusively.
-- **Required signatures** — commits on `main` must be cryptographically signed (GPG/SSH/web-flow). CLI commits without local signing config require `--admin` on `gh pr merge` (GitHub web-flow signs the squash commit).
+- **Required signatures** — commits on `main` must be cryptographically signed (GPG/SSH/web-flow). CLI commits without local signing config can't merge on their own; merging them is an owner decision (GitHub web-flow signs the squash commit).
 - **Linear history** — no merge commits on `main`.
 - **Required status checks** — `CodeFactor` + `CodeQL` must pass before merge.
 - **No `${{ github.event.* }}` interpolation in `run:`** — caller inputs flow through `env:` and dereference as `$VAR` in shell. See the inline note in `action.yaml`.
@@ -68,7 +68,7 @@ When spawning subagents (Task/Agent tool):
 - **Reviewers** check quality/security/standards; do not implement new features.
 - **Researchers** gather and cite first-party sources; do not execute code changes.
 
-Each subagent prompt must be self-contained — the subagent has no parent-session context. Include: cwd, repo, issue # + body, branch name, commit message style, the established `--admin --squash --delete-branch` pattern, and explicit instructions NOT to invoke unrelated skills (e.g. `fewer-permission-prompts`, `update-config`).
+Each subagent prompt must be self-contained — the subagent has no parent-session context. Include: cwd, repo, issue # + body, branch name, commit message style, the merge convention (squash, delete the branch; merging is the owner's call), and explicit instructions NOT to invoke unrelated skills (e.g. `fewer-permission-prompts`, `update-config`).
 
 ## Quality thresholds
 

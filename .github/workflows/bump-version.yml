@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   bump:
-    uses: qte77/.github/.github/workflows/bump-version.yml@88890c306962cd03c0026f9516652975029c7cff
+    uses: qte77/.github/.github/workflows/bump-version.yml@a32769a925e4d056b5d389ad727f7831973f7161  # main 2026-11-12 (qte77/.github#64)
     with:
       bump_type: ${{ inputs.bump_type }}
       open_pr: ${{ inputs.open_pr }}

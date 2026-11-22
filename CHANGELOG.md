@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `publish-release.yml` restricts its `workflow_run` trigger to push runs from this
   repository (the publish job also requires the resolve job to succeed) and carries a
   scoped inline zizmor ignore for `dangerous-triggers` with the reason.
+- `bump-version.yml` pins the shared bump workflow at `qte77/.github` main of 2026-11-22. The only
+  change in the shared workflow since the old pin is an optional `scriv_pin` input, which this repo
+  does not set.
 
 ---
 

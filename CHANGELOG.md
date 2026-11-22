@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `publish-release.yml` restricts its `workflow_run` trigger to push runs from this
+  repository (the publish job also requires the resolve job to succeed) and carries a
+  scoped inline zizmor ignore for `dangerous-triggers` with the reason.
+
 ---
 
 ## [0.7.2] - 2026-11-14
